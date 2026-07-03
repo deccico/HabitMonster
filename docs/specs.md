@@ -1,0 +1,80 @@
+# Detailed functional and technical specifications 
+
+## 1. Functional Specification
+
+### 1.1 App Overview
+
+The application is a standalone, client-side mobile and web productivity tool. It acts as a gamified reward system where users manually trigger a monster's evolution after completing real-world tasks. The core loop consists of pressing a button, witnessing a dramatic evolution (visual and audio feedback), and waiting through a mandatory cooldown period.
+
+### 1.2 User Stories
+
+* **As a user**, I want to see my current monster on the main screen so that I know my current progress.
+* **As a user**, I want to press an "Evolve" button after I finish a real-life task so that I feel rewarded.
+* **As a user**, I want to see a dramatic animation and hear a sound effect when the monster evolves so that the reward feels satisfying and triggers dopamine.
+* **As a user**, I want the button to be disabled for exactly 1 minute after pressing it so that I cannot spam the button and cheat the reward system.
+* **As a user**, I want my monster's evolution stage to be saved automatically, so I don't lose progress if I close the app.
+* **As a user**, I want the app to reset or offer a prestige option once I hit the final stage (Stage 20), so I can start the cycle over.
+
+### 1.3 Core Features & Mechanics
+
+* **Evolution Stages:** 20 distinct stages of the monster.
+* **Cooldown Lockout:** A strict 60-second timer. The UI must clearly indicate how much time is left before the button becomes active again (e.g., a countdown text or a grayed-out button).
+* **Persistent State:** The app must remember the current evolution stage (1–20) and the exact timestamp of the last button press.
+* **Visual/Audio Feedback:** A flash, shake, or particle effect upon pressing the button, accompanied by a satisfying sound effect.
+
+### 1.4 User Interface (UI) Layout
+
+* **Header:** Simple title (e.g., "Task Monster").
+* **Center Stage:** A large, prominent image of the monster at its current stage.
+* **Action Area:** A prominent, central "Evolve" button.
+* **Feedback Area:** A visual timer or progress bar below or on the button showing the 1-minute cooldown.
+* **Stage Tracker:** A small text indicator (e.g., "Stage 4 / 20").
+
+---
+
+## 2. Technical Specification
+
+### 2.1 Architecture & Tech Stack
+
+* **Framework:** Flutter (Dart).
+* **Deployment Targets:** Android (APK/AAB), iOS, and Flutter Web.
+* **Architecture:** 100% Client-side. No backend server, APIs, or external databases are required. All assets will be bundled directly into the application.
+
+### 2.2 Data Models & State Management
+
+You will need a lightweight state management solution (like `Provider` or Flutter's built-in `ValueNotifier`) to track two main variables:
+
+1. `currentStage` (Integer: 1 to 20).
+2. `lastEvolutionTime` (DateTime: The exact moment the button was last pressed).
+
+### 2.3 Core Logic & Algorithms
+
+* **Evolution Logic:**
+* On button press -> Increment `currentStage` by 1.
+* If `currentStage` == 20 -> Trigger final animation. Next press resets `currentStage` to 1.
+
+
+* **Timer Logic (Crucial for Mobile):** * *Do not rely solely on a running background timer*, as mobile operating systems suspend apps in the background.
+* Instead, on button press, save the current `DateTime.now()` to local storage.
+* Whenever the app is opened or resumed, calculate the difference between `DateTime.now()` and the saved timestamp. If the difference is less than 60 seconds, keep the button disabled and start a local UI timer for the remaining seconds.
+
+
+
+### 2.4 Asset Management
+
+* **Images:** 20 distinct `.png`, `.webp`, or `.svg` files stored in the `assets/images/` directory. Named sequentially (e.g., `monster_1.png`, `monster_2.png`) for easy programmatic access.
+* **Audio:** 1 short `.mp3` or `.wav` file stored in the `assets/audio/` directory.
+
+### 2.5 Required Flutter Packages (Dependencies)
+
+To implement this in Flutter, you will add the following packages to your `pubspec.yaml` file:
+
+* `shared_preferences`: To save the `currentStage` and `lastEvolutionTime` locally on the device.
+* `audioplayers`: To handle playing the evolution sound effect without latency.
+* `flutter_animate` (Optional but highly recommended): A library that makes adding "dramatic" flashes, shakes, and scaling effects to your monster image incredibly easy with just a few lines of code.
+
+### 2.6 Edge Cases to Handle
+
+* **App closed during cooldown:** Handled by the timestamp check on app initialization.
+* **Rapid double-tapping:** The button must instantly disable on the first register of a tap to prevent advancing two stages at once.
+* **Missing audio permissions (Web):** Browsers block auto-playing audio, but since your audio is triggered by a direct user interaction (a button press), it will function perfectly.
