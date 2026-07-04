@@ -1,16 +1,20 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 
 import '../data/stages.dart';
 import '../models/monster_state.dart';
-import '../widgets/cooldown_indicator.dart';
-import '../widgets/evolve_button.dart';
+import '../widgets/cheer_character.dart';
 import '../widgets/monster_display.dart';
 import '../widgets/stage_tracker.dart';
+
+/// The guided task loop: Idle -> Working -> Evolving -> Idle.
+enum _Phase { idle, working, evolving }
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -19,61 +23,107 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
+class _HomeScreenState extends State<HomeScreen> {
+  /// Minimum seconds the user must "work" before Ready unlocks.
+  static const int _minTaskSeconds = 10;
+
+  /// How long the evolution celebration plays before returning to Idle.
+  static const int _evolveSeconds = 3;
+
+  static const List<String> _idleCheers = <String>[
+    "Ready to crush a task? 💪",
+    "What are we tackling next?",
+    "Let's make progress!",
+    "Your monster's counting on you!",
+  ];
+  static const List<String> _workingCheers = <String>[
+    "You've got this — keep going!",
+    "Focus mode: ON 🔥",
+    "Every second counts!",
+    "Stay with it, almost there!",
+  ];
+  static const List<String> _evolveCheers = <String>[
+    "WOOHOO! 🎉",
+    "Incredible work!",
+    "Level up! ⭐",
+    "That's how it's done!",
+  ];
+
   final AudioPlayer _player = AudioPlayer();
+  final Random _rng = Random();
 
-  /// UI-only ticker that refreshes the countdown once a second. The cooldown is
-  /// still derived from the saved timestamp on every rebuild, so this timer is
-  /// purely cosmetic and safe to miss ticks while backgrounded (spec 2.3).
-  Timer? _ticker;
+  _Phase _phase = _Phase.idle;
+  int _elapsed = 0; // seconds since Start, during the working phase
+  int _triggerCount = 0; // drives the monster evolve animation
+  late String _cheerMessage = _pick(_idleCheers);
 
-  /// Increments on every successful evolution to replay the monster animation.
-  int _triggerCount = 0;
+  Timer? _workTimer;
+  Timer? _evolveTimer;
+
+  bool get _ready => _elapsed >= _minTaskSeconds;
+
+  String _pick(List<String> list) => list[_rng.nextInt(list.length)];
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this);
     _player.setReleaseMode(ReleaseMode.stop);
-    _startTicker();
   }
 
   @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    _ticker?.cancel();
+    _workTimer?.cancel();
+    _evolveTimer?.cancel();
     _player.dispose();
     super.dispose();
   }
 
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    // On resume, recompute the remaining cooldown from the persisted timestamp
-    // and make sure the ticker is running (spec 2.6 "app closed during
-    // cooldown").
-    if (state == AppLifecycleState.resumed) {
-      _startTicker();
-      if (mounted) setState(() {});
-    }
-  }
-
-  void _startTicker() {
-    _ticker?.cancel();
-    _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (mounted) setState(() {});
+  void _onStart() {
+    _workTimer?.cancel();
+    setState(() {
+      _phase = _Phase.working;
+      _elapsed = 0;
+      _cheerMessage = _pick(_workingCheers);
+    });
+    _workTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
+      setState(() => _elapsed++);
     });
   }
 
-  Future<void> _onEvolvePressed() async {
-    final monster = context.read<MonsterState>();
-    final didEvolve = await monster.evolve();
-    if (!didEvolve || !mounted) return;
+  Future<void> _onReady() async {
+    if (_phase != _Phase.working || !_ready) return;
+    _workTimer?.cancel();
 
-    // Reward feedback (spec 1.3 / 2.5). Audio is triggered by this direct user
-    // interaction, so browser autoplay policies allow it (spec 2.6).
-    setState(() => _triggerCount++);
+    final monster = context.read<MonsterState>();
+    await monster.evolve();
+    if (!mounted) return;
+
+    setState(() {
+      _phase = _Phase.evolving;
+      _triggerCount++;
+      _cheerMessage = _pick(_evolveCheers);
+    });
     unawaited(HapticFeedback.heavyImpact());
     unawaited(_playSound());
+
+    _evolveTimer?.cancel();
+    _evolveTimer = Timer(const Duration(seconds: _evolveSeconds), () {
+      if (!mounted) return;
+      setState(() {
+        _phase = _Phase.idle;
+        _cheerMessage = _pick(_idleCheers);
+      });
+    });
+  }
+
+  Future<void> _playSound() async {
+    try {
+      await _player.stop();
+      await _player.play(AssetSource('audio/evolve.wav'));
+    } catch (_) {
+      // Sound is non-critical; never let an audio failure break the flow.
+    }
   }
 
   Future<void> _confirmReset() async {
@@ -110,23 +160,19 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
     if (!mounted || choice == null || choice == 'cancel') return;
     await monster.reset(keepPrestige: choice == 'keep');
-    if (mounted) setState(_startTicker);
-  }
-
-  Future<void> _playSound() async {
-    try {
-      await _player.stop();
-      await _player.play(AssetSource('audio/evolve.wav'));
-    } catch (_) {
-      // Sound is non-critical; never let an audio failure break evolution.
-    }
+    if (!mounted) return;
+    _workTimer?.cancel();
+    _evolveTimer?.cancel();
+    setState(() {
+      _phase = _Phase.idle;
+      _elapsed = 0;
+      _cheerMessage = _pick(_idleCheers);
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     final monster = context.watch<MonsterState>();
-    final remaining = monster.remainingCooldown();
-    final ready = remaining <= Duration.zero;
 
     return Scaffold(
       appBar: AppBar(
@@ -158,19 +204,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     triggerCount: _triggerCount,
                     isFinal: monster.lastWasPrestige,
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 16),
                   StageTracker(
                     stage: monster.currentStage,
                     prestigeCount: monster.prestigeCount,
                   ),
                   const Spacer(),
-                  EvolveButton(
-                    onPressed: ready ? _onEvolvePressed : null,
-                    remainingSeconds: remaining.inSeconds,
-                    isFinalStage: monster.isFinalStage,
-                  ),
-                  const SizedBox(height: 20),
-                  CooldownIndicator(remaining: remaining),
+                  _buildPhaseArea(context),
                   const SizedBox(height: 32),
                 ],
               ),
@@ -179,5 +219,115 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         ),
       ),
     );
+  }
+
+  Widget _buildPhaseArea(BuildContext context) {
+    final theme = Theme.of(context);
+
+    switch (_phase) {
+      case _Phase.idle:
+        return Column(
+          key: const ValueKey<String>('idle'),
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            CheerCharacter(emoji: '📣', message: _cheerMessage),
+            const SizedBox(height: 20),
+            Text(
+              'Are you ready to start your task?',
+              textAlign: TextAlign.center,
+              style: theme.textTheme.titleMedium,
+            ),
+            const SizedBox(height: 16),
+            _actionButton(
+              label: 'START',
+              icon: Icons.play_arrow_rounded,
+              onPressed: _onStart,
+            ),
+          ],
+        );
+
+      case _Phase.working:
+        final remaining = (_minTaskSeconds - _elapsed).clamp(0, _minTaskSeconds);
+        return Column(
+          key: const ValueKey<String>('working'),
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            CheerCharacter(emoji: '💪', message: _cheerMessage),
+            const SizedBox(height: 20),
+            Text(
+              _formatTime(_elapsed),
+              style: theme.textTheme.displaySmall?.copyWith(
+                fontFeatures: const <FontFeature>[FontFeature.tabularFigures()],
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            Text(
+              'Task in progress',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 16),
+            _actionButton(
+              label: _ready ? "I'M READY!" : 'Ready in ${remaining}s',
+              icon: _ready ? Icons.check_circle_rounded : Icons.hourglass_top,
+              onPressed: _ready ? _onReady : null,
+            ),
+          ],
+        );
+
+      case _Phase.evolving:
+        return Column(
+          key: const ValueKey<String>('evolving'),
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            CheerCharacter(emoji: '🎉', message: _cheerMessage),
+            const SizedBox(height: 20),
+            Text(
+                  'Evolving…',
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.primary,
+                  ),
+                )
+                .animate(onPlay: (c) => c.repeat())
+                .shimmer(duration: 1200.ms, color: Colors.amber),
+          ],
+        );
+    }
+  }
+
+  Widget _actionButton({
+    required String label,
+    required IconData icon,
+    required VoidCallback? onPressed,
+  }) {
+    return SizedBox(
+      width: 260,
+      height: 64,
+      child: FilledButton.icon(
+        onPressed: onPressed,
+        icon: Icon(icon),
+        label: Text(
+          label,
+          style: const TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.2,
+          ),
+        ),
+        style: FilledButton.styleFrom(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _formatTime(int totalSeconds) {
+    final minutes = totalSeconds ~/ 60;
+    final seconds = (totalSeconds % 60).toString().padLeft(2, '0');
+    return '$minutes:$seconds';
   }
 }

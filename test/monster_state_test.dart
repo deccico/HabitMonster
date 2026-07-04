@@ -17,7 +17,6 @@ void main() {
       await state.load();
       expect(state.currentStage, 1);
       expect(state.prestigeCount, 0);
-      expect(state.canEvolve, isTrue);
     });
 
     test('increments the stage by one', () async {
@@ -33,14 +32,11 @@ void main() {
     });
 
     test('wraps from stage 20 to 1 and increments prestige', () async {
-      // Advance to stage 20 using a moving clock so the cooldown never blocks.
-      var now = DateTime(2026);
-      final state = MonsterState(clock: () => now);
+      final state = MonsterState();
       await state.load();
 
       for (var i = 0; i < kMaxStage - 1; i++) {
         await state.evolve();
-        now = now.add(const Duration(minutes: 2));
       }
       expect(state.currentStage, kMaxStage);
       expect(state.isFinalStage, isTrue);
@@ -54,82 +50,29 @@ void main() {
     });
   });
 
-  group('cooldown', () {
-    test('blocks a second evolve within 60 seconds', () async {
-      var now = DateTime(2026);
-      final state = MonsterState(clock: () => now);
-      await state.load();
-
-      expect(await state.evolve(), isTrue);
-      expect(state.currentStage, 2);
-
-      // 30s later: still locked.
-      now = now.add(const Duration(seconds: 30));
-      expect(state.onCooldown, isTrue);
-      expect(state.canEvolve, isFalse);
-      expect(await state.evolve(), isFalse);
-      expect(state.currentStage, 2);
-    });
-
-    test('re-enables after the cooldown elapses', () async {
-      var now = DateTime(2026);
-      final state = MonsterState(clock: () => now);
-      await state.load();
-
-      await state.evolve();
-      now = now.add(const Duration(seconds: kCooldownSeconds + 1));
-
-      expect(state.onCooldown, isFalse);
-      expect(state.remainingCooldown(), Duration.zero);
-      expect(await state.evolve(), isTrue);
-      expect(state.currentStage, 3);
-    });
-
-    test('remainingCooldown counts down from 60s', () async {
-      var now = DateTime(2026);
-      final state = MonsterState(clock: () => now);
-      await state.load();
-
-      await state.evolve();
-      expect(state.remainingCooldown().inSeconds, kCooldownSeconds);
-
-      now = now.add(const Duration(seconds: 45));
-      expect(state.remainingCooldown().inSeconds, kCooldownSeconds - 45);
-    });
-  });
-
   group('reset', () {
-    test('keepPrestige returns to stage 1, clears cooldown, keeps prestige',
-        () async {
-      var now = DateTime(2026);
-      final state = MonsterState(clock: () => now);
+    test('keepPrestige returns to stage 1 but keeps prestige', () async {
+      final state = MonsterState();
       await state.load();
 
-      // Reach stage 20 and prestige once, ending mid-cooldown.
       for (var i = 0; i < kMaxStage; i++) {
         await state.evolve();
-        now = now.add(const Duration(minutes: 2));
       }
-      await state.evolve(); // wrap -> stage 1, prestige 1, fresh cooldown
+      await state.evolve(); // wrap -> stage 1, prestige 1
       expect(state.prestigeCount, 1);
-      expect(state.onCooldown, isTrue);
 
       await state.reset(keepPrestige: true);
 
       expect(state.currentStage, 1);
       expect(state.prestigeCount, 1); // preserved
-      expect(state.onCooldown, isFalse); // cooldown cleared
-      expect(state.canEvolve, isTrue);
     });
 
     test('full wipe clears prestige too', () async {
-      var now = DateTime(2026);
-      final state = MonsterState(clock: () => now);
+      final state = MonsterState();
       await state.load();
 
       for (var i = 0; i < kMaxStage; i++) {
         await state.evolve();
-        now = now.add(const Duration(minutes: 2));
       }
       await state.evolve();
       expect(state.prestigeCount, 1);
@@ -138,43 +81,21 @@ void main() {
 
       expect(state.currentStage, 1);
       expect(state.prestigeCount, 0);
-      expect(state.onCooldown, isFalse);
-    });
-
-    test('reset persists across a reload', () async {
-      final now = DateTime(2026);
-      final first = MonsterState(clock: () => now);
-      await first.load();
-      await first.evolve();
-      await first.reset(keepPrestige: true);
-
-      final second = MonsterState(clock: () => now);
-      await second.load();
-      expect(second.currentStage, 1);
-      expect(second.onCooldown, isFalse); // cleared timestamp did persist
     });
   });
 
   group('persistence', () {
-    test('reloads stage, prestige and cooldown from storage', () async {
-      final fixedNow = DateTime(2026, 1, 1, 12);
-
-      // First session: evolve once, then simulate reaching stage 20 wrap.
-      final first = MonsterState(clock: () => fixedNow);
+    test('reloads stage and prestige from storage', () async {
+      final first = MonsterState();
       await first.load();
-      await first.evolve(); // stage 2, timestamp = fixedNow
+      await first.evolve();
+      await first.evolve(); // stage 3
 
-      // Second session: a brand new instance restores the saved state.
-      final second = MonsterState(
-        clock: () => fixedNow.add(const Duration(seconds: 20)),
-      );
+      final second = MonsterState();
       await second.load();
 
-      expect(second.currentStage, 2);
-      expect(second.lastEvolutionTime, fixedNow);
-      // 20s elapsed of the 60s cooldown -> ~40s remain, still locked.
-      expect(second.onCooldown, isTrue);
-      expect(second.remainingCooldown().inSeconds, kCooldownSeconds - 20);
+      expect(second.currentStage, 3);
+      expect(second.prestigeCount, 0);
     });
   });
 }
