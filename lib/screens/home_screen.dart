@@ -9,6 +9,7 @@ import 'package:provider/provider.dart';
 
 import '../data/stages.dart';
 import '../models/monster_state.dart';
+import '../services/analytics.dart';
 import '../widgets/cheer_character.dart';
 import '../widgets/monster_display.dart';
 import '../widgets/stage_tracker.dart';
@@ -80,6 +81,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _onStart() {
     _workTimer?.cancel();
+    analytics.logEvent('task_started', <String, Object>{
+      'stage': context.read<MonsterState>().currentStage,
+    });
     setState(() {
       _phase = _Phase.working;
       _elapsed = 0;
@@ -94,10 +98,18 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _onReady() async {
     if (_phase != _Phase.working || !_ready) return;
     _workTimer?.cancel();
+    final taskSeconds = _elapsed;
 
     final monster = context.read<MonsterState>();
     await monster.evolve();
     if (!mounted) return;
+
+    analytics.logEvent('evolution', <String, Object>{
+      'stage': monster.currentStage,
+      'prestige_count': monster.prestigeCount,
+      'task_seconds': taskSeconds,
+      'is_prestige': monster.lastWasPrestige ? 1 : 0,
+    });
 
     setState(() {
       _phase = _Phase.evolving;
@@ -159,6 +171,9 @@ class _HomeScreenState extends State<HomeScreen> {
     );
 
     if (!mounted || choice == null || choice == 'cancel') return;
+    analytics.logEvent('reset', <String, Object>{
+      'keep_prestige': choice == 'keep' ? 1 : 0,
+    });
     await monster.reset(keepPrestige: choice == 'keep');
     if (!mounted) return;
     _workTimer?.cancel();

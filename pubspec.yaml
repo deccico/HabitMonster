@@ -43,6 +43,8 @@ dependencies:
   audioplayers: ^6.1.0
   # Dramatic flash/shake/scale feedback (spec 2.5)
   flutter_animate: ^4.5.0
+  firebase_core: ^4.11.0
+  firebase_analytics: ^12.4.3
 
 dev_dependencies:
   flutter_test:
