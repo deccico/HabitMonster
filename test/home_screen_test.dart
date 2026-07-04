@@ -52,6 +52,8 @@ void main() {
     expect(find.text('Are you ready to start your task?'), findsOneWidget);
     expect(find.text('START'), findsOneWidget);
     expect(find.text('Stage 1 / 20'), findsOneWidget);
+    // Reset control is present and labelled in the app bar.
+    expect(find.widgetWithText(TextButton, 'Reset'), findsOneWidget);
 
     await teardownTree(tester);
   });
