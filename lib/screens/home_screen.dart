@@ -173,19 +173,27 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final monster = context.watch<MonsterState>();
+    final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
+        // Explicit foreground so the title + actions stay high-contrast on the
+        // dark surface (the default icon colour was blending in).
+        foregroundColor: scheme.onSurface,
         title: const Text(
           'Task Monster',
           style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 0.5),
         ),
         actions: <Widget>[
-          IconButton(
-            icon: const Icon(Icons.restart_alt),
-            tooltip: 'Reset progress',
-            onPressed: _confirmReset,
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: TextButton.icon(
+              icon: const Icon(Icons.restart_alt),
+              label: const Text('Reset'),
+              onPressed: _confirmReset,
+              style: TextButton.styleFrom(foregroundColor: scheme.primary),
+            ),
           ),
         ],
       ),
