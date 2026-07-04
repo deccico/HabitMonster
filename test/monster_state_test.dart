@@ -98,6 +98,63 @@ void main() {
     });
   });
 
+  group('reset', () {
+    test('keepPrestige returns to stage 1, clears cooldown, keeps prestige',
+        () async {
+      var now = DateTime(2026);
+      final state = MonsterState(clock: () => now);
+      await state.load();
+
+      // Reach stage 20 and prestige once, ending mid-cooldown.
+      for (var i = 0; i < kMaxStage; i++) {
+        await state.evolve();
+        now = now.add(const Duration(minutes: 2));
+      }
+      await state.evolve(); // wrap -> stage 1, prestige 1, fresh cooldown
+      expect(state.prestigeCount, 1);
+      expect(state.onCooldown, isTrue);
+
+      await state.reset(keepPrestige: true);
+
+      expect(state.currentStage, 1);
+      expect(state.prestigeCount, 1); // preserved
+      expect(state.onCooldown, isFalse); // cooldown cleared
+      expect(state.canEvolve, isTrue);
+    });
+
+    test('full wipe clears prestige too', () async {
+      var now = DateTime(2026);
+      final state = MonsterState(clock: () => now);
+      await state.load();
+
+      for (var i = 0; i < kMaxStage; i++) {
+        await state.evolve();
+        now = now.add(const Duration(minutes: 2));
+      }
+      await state.evolve();
+      expect(state.prestigeCount, 1);
+
+      await state.reset(keepPrestige: false);
+
+      expect(state.currentStage, 1);
+      expect(state.prestigeCount, 0);
+      expect(state.onCooldown, isFalse);
+    });
+
+    test('reset persists across a reload', () async {
+      final now = DateTime(2026);
+      final first = MonsterState(clock: () => now);
+      await first.load();
+      await first.evolve();
+      await first.reset(keepPrestige: true);
+
+      final second = MonsterState(clock: () => now);
+      await second.load();
+      expect(second.currentStage, 1);
+      expect(second.onCooldown, isFalse); // cleared timestamp did persist
+    });
+  });
+
   group('persistence', () {
     test('reloads stage, prestige and cooldown from storage', () async {
       final fixedNow = DateTime(2026, 1, 1, 12);

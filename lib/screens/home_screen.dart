@@ -76,6 +76,43 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     unawaited(_playSound());
   }
 
+  Future<void> _confirmReset() async {
+    final monster = context.read<MonsterState>();
+    final hasPrestige = monster.prestigeCount > 0;
+
+    final choice = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Reset progress?'),
+        content: Text(
+          hasPrestige
+              ? 'Send your monster back to Stage 1. Keep your '
+                    'Prestige ×${monster.prestigeCount}, or wipe everything?'
+              : 'Send your monster back to Stage 1?',
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, 'cancel'),
+            child: const Text('Cancel'),
+          ),
+          if (hasPrestige)
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, 'wipe'),
+              child: const Text('Reset everything'),
+            ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, 'keep'),
+            child: Text(hasPrestige ? 'Keep prestige' : 'Reset'),
+          ),
+        ],
+      ),
+    );
+
+    if (!mounted || choice == null || choice == 'cancel') return;
+    await monster.reset(keepPrestige: choice == 'keep');
+    if (mounted) setState(_startTicker);
+  }
+
   Future<void> _playSound() async {
     try {
       await _player.stop();
@@ -98,6 +135,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           'Task Monster',
           style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 0.5),
         ),
+        actions: <Widget>[
+          IconButton(
+            icon: const Icon(Icons.restart_alt),
+            tooltip: 'Reset progress',
+            onPressed: _confirmReset,
+          ),
+        ],
       ),
       body: SafeArea(
         child: Center(

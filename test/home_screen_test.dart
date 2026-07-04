@@ -75,4 +75,29 @@ void main() {
     await tester.pumpWidget(const SizedBox());
     await tester.pump(const Duration(seconds: 1));
   });
+
+  testWidgets('reset button confirms then returns to Stage 1', (tester) async {
+    final state = await pumpApp(tester);
+
+    await tester.tap(find.text('EVOLVE'));
+    await tester.pump();
+    expect(state.currentStage, 2);
+
+    // Open the reset dialog from the app bar.
+    await tester.tap(find.byIcon(Icons.restart_alt));
+    await tester.pumpAndSettle();
+    expect(find.text('Reset progress?'), findsOneWidget);
+
+    // Confirm (no prestige yet, so the single action is labelled "Reset").
+    await tester.tap(find.widgetWithText(FilledButton, 'Reset'));
+    await tester.pump();
+
+    expect(state.currentStage, 1);
+    expect(state.onCooldown, isFalse); // cooldown cleared, button re-enabled
+    expect(find.text('Stage 1 / 20'), findsOneWidget);
+    expect(find.text('EVOLVE'), findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump(const Duration(seconds: 1));
+  });
 }

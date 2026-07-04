@@ -92,6 +92,20 @@ class MonsterState extends ChangeNotifier {
     }
   }
 
+  /// Manually reset progress back to Stage 1 and clear any active cooldown.
+  ///
+  /// When [keepPrestige] is true the lifetime prestige count is preserved
+  /// (a "start this run over" reset); otherwise everything is wiped to a
+  /// brand-new state.
+  Future<void> reset({required bool keepPrestige}) async {
+    _currentStage = 1;
+    _lastEvolutionTime = null;
+    _lastWasPrestige = false;
+    if (!keepPrestige) _prestigeCount = 0;
+    notifyListeners();
+    await _persist();
+  }
+
   Future<void> _persist() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_kStage, _currentStage);
@@ -99,6 +113,8 @@ class MonsterState extends ChangeNotifier {
     final last = _lastEvolutionTime;
     if (last != null) {
       await prefs.setInt(_kLastMillis, last.millisecondsSinceEpoch);
+    } else {
+      await prefs.remove(_kLastMillis);
     }
   }
 }
