@@ -13,6 +13,7 @@ import '../data/stages.dart';
 import '../models/monster_state.dart';
 import '../models/profile.dart';
 import '../services/analytics.dart';
+import '../version.dart';
 import '../widgets/cheer_character.dart';
 import '../widgets/monster_display.dart';
 import '../widgets/stage_tracker.dart';
@@ -27,7 +28,7 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   /// Minimum seconds the user must "work" before Ready unlocks.
   static const int _minTaskSeconds = 10;
 
@@ -79,18 +80,31 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _player.setReleaseMode(ReleaseMode.stop);
     _alarmPlayer.setReleaseMode(ReleaseMode.stop);
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _workTimer?.cancel();
     _evolveTimer?.cancel();
     _player.dispose();
     _alarmPlayer.dispose();
     unawaited(_setWakelock(false));
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // A browser screen wake lock is auto-released whenever the page/app is
+    // hidden (e.g. on mobile Firefox/Chrome when you switch tabs or apps). When
+    // we come back to the foreground mid-task, re-assert it so the screen keeps
+    // staying awake.
+    if (state == AppLifecycleState.resumed && _phase == _Phase.working) {
+      unawaited(_setWakelock(true));
+    }
   }
 
   void _onStart() {
@@ -439,32 +453,47 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
       body: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 420),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: <Widget>[
-                  const Spacer(),
-                  MonsterDisplay(
-                    emoji: emojiForStage(monster.currentStage),
-                    triggerCount: _triggerCount,
-                    isFinal: monster.lastWasPrestige,
+        child: Stack(
+          children: <Widget>[
+            Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 420),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: <Widget>[
+                      const Spacer(),
+                      MonsterDisplay(
+                        emoji: emojiForStage(monster.currentStage),
+                        triggerCount: _triggerCount,
+                        isFinal: monster.lastWasPrestige,
+                      ),
+                      const SizedBox(height: 16),
+                      StageTracker(
+                        stage: monster.currentStage,
+                        prestigeCount: monster.prestigeCount,
+                      ),
+                      const Spacer(),
+                      _buildPhaseArea(context),
+                      const SizedBox(height: 32),
+                    ],
                   ),
-                  const SizedBox(height: 16),
-                  StageTracker(
-                    stage: monster.currentStage,
-                    prestigeCount: monster.prestigeCount,
-                  ),
-                  const Spacer(),
-                  _buildPhaseArea(context),
-                  const SizedBox(height: 32),
-                ],
+                ),
               ),
             ),
-          ),
+            Positioned(
+              right: 8,
+              bottom: 4,
+              child: Text(
+                'v$kAppVersion',
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: scheme.onSurfaceVariant.withValues(alpha: 0.6),
+                  fontSize: 10,
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
