@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:habit_monster/models/monster_state.dart';
 import 'package:habit_monster/screens/home_screen.dart';
+import 'package:habit_monster/version.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -62,6 +63,8 @@ void main() {
     expect(find.widgetWithText(TextButton, 'Reset'), findsOneWidget);
     // The active profile button shows the default user's name.
     expect(find.widgetWithText(TextButton, 'Player 1'), findsOneWidget);
+    // The version badge is shown.
+    expect(find.text('v$kAppVersion'), findsOneWidget);
 
     await teardownTree(tester);
   });
