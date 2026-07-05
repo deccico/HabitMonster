@@ -8,8 +8,10 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
+import '../data/animals.dart';
 import '../data/stages.dart';
 import '../models/monster_state.dart';
+import '../models/profile.dart';
 import '../services/analytics.dart';
 import '../widgets/cheer_character.dart';
 import '../widgets/monster_display.dart';
@@ -223,6 +225,12 @@ class _HomeScreenState extends State<HomeScreen> {
     });
     await monster.reset(keepPrestige: choice == 'keep');
     if (!mounted) return;
+    _returnToIdle();
+  }
+
+  /// Cancel any in-progress task and return the loop to Idle. Shared by reset
+  /// and profile switching so a fresh user (or a fresh run) starts clean.
+  void _returnToIdle() {
     _workTimer?.cancel();
     _evolveTimer?.cancel();
     unawaited(_setWakelock(false));
@@ -232,6 +240,156 @@ class _HomeScreenState extends State<HomeScreen> {
       _alarmFired = false;
       _cheerMessage = _pick(_idleCheers);
     });
+  }
+
+  /// The user switcher: pick a profile, add a new one, or edit/delete.
+  Future<void> _openProfileSheet() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) {
+        final scheme = Theme.of(sheetContext).colorScheme;
+        return SafeArea(
+          child: Consumer<MonsterState>(
+            builder: (context, monster, _) {
+              final profiles = monster.profiles;
+              final activeId = monster.activeProfile.id;
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'Users',
+                        style: Theme.of(sheetContext).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+                  for (final p in profiles)
+                    ListTile(
+                      leading: Text(
+                        p.animal,
+                        style: const TextStyle(fontSize: 28),
+                      ),
+                      title: Text(p.name),
+                      selected: p.id == activeId,
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: <Widget>[
+                          if (p.id == activeId)
+                            Icon(Icons.check_circle, color: scheme.primary),
+                          IconButton(
+                            icon: const Icon(Icons.edit_outlined),
+                            tooltip: 'Edit',
+                            onPressed: () => _openProfileEditor(existing: p),
+                          ),
+                          if (profiles.length > 1)
+                            IconButton(
+                              icon: const Icon(Icons.delete_outline),
+                              tooltip: 'Delete',
+                              onPressed: () => _confirmDeleteProfile(p),
+                            ),
+                        ],
+                      ),
+                      onTap: () {
+                        Navigator.pop(sheetContext);
+                        _selectProfile(p.id);
+                      },
+                    ),
+                  const Divider(height: 8),
+                  ListTile(
+                    leading: const Icon(Icons.add),
+                    title: const Text('Add user'),
+                    onTap: () => _openProfileEditor(),
+                  ),
+                  const SizedBox(height: 8),
+                ],
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _selectProfile(String id) async {
+    final monster = context.read<MonsterState>();
+    if (id == monster.activeProfile.id) return;
+    await monster.switchProfile(id);
+    if (!mounted) return;
+    analytics.logEvent('profile_switched', <String, Object>{
+      'profile_count': monster.profiles.length,
+    });
+    _returnToIdle();
+  }
+
+  /// Create a new user or edit an existing one: a name field + an animal picker.
+  Future<void> _openProfileEditor({Profile? existing}) async {
+    final isEdit = existing != null;
+    final result = await showDialog<_ProfileEditorResult>(
+      context: context,
+      builder: (_) => _ProfileEditorDialog(existing: existing),
+    );
+    if (!mounted || result == null) return;
+
+    final monster = context.read<MonsterState>();
+    if (isEdit) {
+      final name = result.name.isEmpty ? existing.name : result.name;
+      await monster.updateProfile(
+        existing.id,
+        name: name,
+        animal: result.animal,
+      );
+    } else {
+      final name = result.name.isEmpty
+          ? 'Player ${monster.profiles.length + 1}'
+          : result.name;
+      await monster.addProfile(name, result.animal);
+      if (!mounted) return;
+      analytics.logEvent('profile_created', <String, Object>{
+        'profile_count': monster.profiles.length,
+      });
+      _returnToIdle();
+    }
+  }
+
+  Future<void> _confirmDeleteProfile(Profile profile) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Delete user?'),
+        content: Text(
+          'Delete ${profile.name} and their monster progress? '
+          'This cannot be undone.',
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(dialogContext).colorScheme.error,
+            ),
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (!mounted || confirmed != true) return;
+    final monster = context.read<MonsterState>();
+    final wasActive = profile.id == monster.activeProfile.id;
+    final ok = await monster.deleteProfile(profile.id);
+    if (!mounted || !ok) return;
+    analytics.logEvent('profile_deleted', <String, Object>{
+      'profile_count': monster.profiles.length,
+    });
+    if (wasActive) _returnToIdle();
   }
 
   @override
@@ -250,6 +408,25 @@ class _HomeScreenState extends State<HomeScreen> {
           style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 0.5),
         ),
         actions: <Widget>[
+          Padding(
+            padding: const EdgeInsets.only(right: 4),
+            child: TextButton.icon(
+              icon: Text(
+                monster.activeProfile.animal,
+                style: const TextStyle(fontSize: 20),
+              ),
+              label: Text(
+                monster.activeProfile.name,
+                overflow: TextOverflow.ellipsis,
+              ),
+              onPressed: _openProfileSheet,
+              style: TextButton.styleFrom(
+                foregroundColor: scheme.primary,
+                // Keep long names from pushing Reset off the bar.
+                maximumSize: const Size(140, double.infinity),
+              ),
+            ),
+          ),
           Padding(
             padding: const EdgeInsets.only(right: 8),
             child: TextButton.icon(
@@ -408,5 +585,102 @@ class _HomeScreenState extends State<HomeScreen> {
     final minutes = totalSeconds ~/ 60;
     final seconds = (totalSeconds % 60).toString().padLeft(2, '0');
     return '$minutes:$seconds';
+  }
+}
+
+/// The name + trimmed value returned by [_ProfileEditorDialog].
+class _ProfileEditorResult {
+  const _ProfileEditorResult(this.name, this.animal);
+  final String name;
+  final String animal;
+}
+
+/// Add/edit-user dialog. Owns its [TextEditingController] so it is disposed
+/// safely with the dialog (avoiding a use-after-dispose during the close
+/// animation).
+class _ProfileEditorDialog extends StatefulWidget {
+  const _ProfileEditorDialog({this.existing});
+
+  final Profile? existing;
+
+  @override
+  State<_ProfileEditorDialog> createState() => _ProfileEditorDialogState();
+}
+
+class _ProfileEditorDialogState extends State<_ProfileEditorDialog> {
+  late final TextEditingController _controller = TextEditingController(
+    text: widget.existing?.name ?? '',
+  );
+  late String _animal = widget.existing?.animal ?? defaultAnimal;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isEdit = widget.existing != null;
+    final scheme = Theme.of(context).colorScheme;
+    return AlertDialog(
+      title: Text(isEdit ? 'Edit user' : 'New user'),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            TextField(
+              controller: _controller,
+              autofocus: true,
+              textCapitalization: TextCapitalization.words,
+              decoration: const InputDecoration(labelText: 'Name'),
+            ),
+            const SizedBox(height: 20),
+            const Text('Choose an animal'),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: <Widget>[
+                for (final animal in animalIcons)
+                  GestureDetector(
+                    onTap: () => setState(() => _animal = animal),
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: animal == _animal
+                            ? scheme.primaryContainer
+                            : null,
+                        border: Border.all(
+                          width: 2,
+                          color: animal == _animal
+                              ? scheme.primary
+                              : Colors.transparent,
+                        ),
+                      ),
+                      child: Text(animal, style: const TextStyle(fontSize: 26)),
+                    ),
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+      actions: <Widget>[
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(
+            context,
+            _ProfileEditorResult(_controller.text.trim(), _animal),
+          ),
+          child: Text(isEdit ? 'Save' : 'Create'),
+        ),
+      ],
+    );
   }
 }

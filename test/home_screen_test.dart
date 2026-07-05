@@ -60,6 +60,37 @@ void main() {
     expect(find.text('Stage 1 / 20'), findsOneWidget);
     // Reset control is present and labelled in the app bar.
     expect(find.widgetWithText(TextButton, 'Reset'), findsOneWidget);
+    // The active profile button shows the default user's name.
+    expect(find.widgetWithText(TextButton, 'Player 1'), findsOneWidget);
+
+    await teardownTree(tester);
+  });
+
+  testWidgets('profile switcher adds a user and switches the active name', (
+    tester,
+  ) async {
+    await pumpApp(tester);
+
+    // Open the switcher sheet from the app-bar profile button.
+    await tester.tap(find.widgetWithText(TextButton, 'Player 1'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
+    expect(find.text('Users'), findsOneWidget);
+    expect(find.widgetWithText(ListTile, 'Add user'), findsOneWidget);
+
+    // Add a new user via the editor dialog.
+    await tester.tap(find.widgetWithText(ListTile, 'Add user'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
+    expect(find.text('New user'), findsOneWidget);
+    await tester.enterText(find.byType(TextField), 'Sam');
+    await tester.tap(find.widgetWithText(FilledButton, 'Create'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
+
+    // The app bar now shows the newly-created, now-active user.
+    expect(find.widgetWithText(TextButton, 'Sam'), findsOneWidget);
+    expect(find.widgetWithText(TextButton, 'Player 1'), findsNothing);
 
     await teardownTree(tester);
   });
