@@ -23,6 +23,12 @@ void main() {
     });
   }
 
+  // wakelock_plus has no native side in tests; stub its channel too.
+  messenger.setMockMethodCallHandler(
+    const MethodChannel('dev.fluttercommunity.plus/wakelock'),
+    (call) async => null,
+  );
+
   setUp(() {
     SharedPreferences.setMockInitialValues(<String, Object>{});
   });
@@ -102,6 +108,34 @@ void main() {
     await tester.tap(find.byType(FilledButton), warnIfMissed: false);
     await tester.pump();
     expect(state.currentStage, 1);
+
+    await teardownTree(tester);
+  });
+
+  testWidgets('fires the cheerful wrap-up nudge at the 5-minute mark', (
+    tester,
+  ) async {
+    await pumpApp(tester);
+
+    await tester.tap(find.text('START'));
+    await tester.pump();
+
+    // Well before 5 minutes: normal working state, no nudge.
+    await tester.pump(const Duration(seconds: 30));
+    expect(find.text('Task in progress'), findsOneWidget);
+    expect(find.text('Time to wrap up! 🎉'), findsNothing);
+
+    // Advance to the 5-minute (300s) mark, one tick at a time.
+    for (var i = 30; i < 300; i++) {
+      await tester.pump(const Duration(seconds: 1));
+    }
+
+    // The nudge is now showing: amber "wrap up" subtext + upbeat message,
+    // and the working timer keeps running (Ready stays available).
+    expect(find.text('Time to wrap up! 🎉'), findsOneWidget);
+    expect(find.text('Task in progress'), findsNothing);
+    expect(find.text("Time's up — hit READY! 🎉"), findsOneWidget);
+    expect(find.text("I'M READY!"), findsOneWidget);
 
     await teardownTree(tester);
   });
