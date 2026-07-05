@@ -13,13 +13,13 @@ The application is a standalone, client-side mobile and web productivity tool. I
 * **As a user**, I want to see a dramatic animation and hear a sound effect when the monster evolves so that the reward feels satisfying and triggers dopamine.
 * **As a user**, I want the button to be disabled for exactly 1 minute after pressing it so that I cannot spam the button and cheat the reward system.
 * **As a user**, I want my monster's evolution stage to be saved automatically, so I don't lose progress if I close the app.
-* **As a user**, I want the app to reset or offer a prestige option once I hit the final stage (Stage 20), so I can start the cycle over.
+* **As a user**, I want the app to reset or offer a prestige option once I hit the final stage (Stage 50), so I can start the cycle over.
 
 ### 1.3 Core Features & Mechanics
 
-* **Evolution Stages:** 20 distinct stages of the monster.
+* **Evolution Stages:** 50 distinct stages of the monster.
 * **Cooldown Lockout:** A strict 60-second timer. The UI must clearly indicate how much time is left before the button becomes active again (e.g., a countdown text or a grayed-out button).
-* **Persistent State:** The app must remember the current evolution stage (1–20) and the exact timestamp of the last button press.
+* **Persistent State:** The app must remember the current evolution stage (1–50) and the exact timestamp of the last button press.
 * **Visual/Audio Feedback:** A flash, shake, or particle effect upon pressing the button, accompanied by a satisfying sound effect.
 
 ### 1.4 User Interface (UI) Layout
@@ -28,7 +28,7 @@ The application is a standalone, client-side mobile and web productivity tool. I
 * **Center Stage:** A large, prominent image of the monster at its current stage.
 * **Action Area:** A prominent, central "Evolve" button.
 * **Feedback Area:** A visual timer or progress bar below or on the button showing the 1-minute cooldown.
-* **Stage Tracker:** A small text indicator (e.g., "Stage 4 / 20").
+* **Stage Tracker:** A small text indicator (e.g., "Stage 4"). The total is deliberately not shown so the ladder feels endless.
 
 ---
 
@@ -44,14 +44,14 @@ The application is a standalone, client-side mobile and web productivity tool. I
 
 You will need a lightweight state management solution (like `Provider` or Flutter's built-in `ValueNotifier`) to track two main variables:
 
-1. `currentStage` (Integer: 1 to 20).
+1. `currentStage` (Integer: 1 to 50).
 2. `lastEvolutionTime` (DateTime: The exact moment the button was last pressed).
 
 ### 2.3 Core Logic & Algorithms
 
 * **Evolution Logic:**
 * On button press -> Increment `currentStage` by 1.
-* If `currentStage` == 20 -> Trigger final animation. Next press resets `currentStage` to 1.
+* If `currentStage` == 50 -> Trigger final animation. Next press resets `currentStage` to 1.
 
 
 * **Timer Logic (Crucial for Mobile):** * *Do not rely solely on a running background timer*, as mobile operating systems suspend apps in the background.
@@ -62,7 +62,7 @@ You will need a lightweight state management solution (like `Provider` or Flutte
 
 ### 2.4 Asset Management
 
-* **Images:** 20 distinct `.png`, `.webp`, or `.svg` files stored in the `assets/images/` directory. Named sequentially (e.g., `monster_1.png`, `monster_2.png`) for easy programmatic access.
+* **Images:** Monster stages are rendered as emoji (50 distinct emoji in `lib/data/stages.dart`) rather than bundled image files; `assets/images/` holds only branding (the app-bar logo).
 * **Audio:** 1 short `.mp3` or `.wav` file stored in the `assets/audio/` directory.
 
 ### 2.5 Required Flutter Packages (Dependencies)

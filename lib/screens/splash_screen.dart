@@ -17,7 +17,7 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen> {
   // A quick evolution montage for the loading animation.
-  static const List<String> _montage = <String>['🥚', '🐣', '🦎', '🐉', '🔥'];
+  static const List<String> _montage = <String>['🥚', '🐣', '🦎', '🐉', '🌌'];
 
   int _index = 0;
   Timer? _cycleTimer;

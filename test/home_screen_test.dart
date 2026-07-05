@@ -58,7 +58,7 @@ void main() {
 
     expect(find.text('Are you ready to start your task?'), findsOneWidget);
     expect(find.text('START'), findsOneWidget);
-    expect(find.text('Stage 1 / 20'), findsOneWidget);
+    expect(find.text('Stage 1'), findsOneWidget);
     // Reset control is present and labelled in the app bar.
     expect(find.widgetWithText(TextButton, 'Reset'), findsOneWidget);
     // The active profile button shows the default user's name.
@@ -119,7 +119,7 @@ void main() {
     await tester.tap(find.text("I'M READY!"));
     await tester.pump();
     expect(state.currentStage, 2);
-    expect(find.text('Stage 2 / 20'), findsOneWidget);
+    expect(find.text('Stage 2'), findsOneWidget);
     expect(find.text('Evolving…'), findsOneWidget);
 
     // After the 3-second celebration we return to Idle.

@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../data/stages.dart';
 
-/// Small progress indicator: "Stage X / 20", the stage's flavour name, and a
+/// Small progress indicator: "Stage X" (the total is deliberately hidden so
+/// the evolution ladder feels endless), the stage's flavour name, and a
 /// prestige chip once the user has rebirthed at least once (spec 1.4).
 class StageTracker extends StatelessWidget {
   const StageTracker({
@@ -28,7 +29,7 @@ class StageTracker extends StatelessWidget {
         ),
         const SizedBox(height: 4),
         Text(
-          'Stage $stage / $kMaxStage',
+          'Stage $stage',
           style: theme.textTheme.bodyMedium?.copyWith(
             color: theme.colorScheme.onSurfaceVariant,
           ),
