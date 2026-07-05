@@ -11,11 +11,14 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 import '../data/animals.dart';
 import '../data/stages.dart';
 import '../models/monster_state.dart';
+import '../models/parent_lock_state.dart';
 import '../models/profile.dart';
 import '../services/analytics.dart';
+import '../services/parent_gate.dart';
 import '../version.dart';
 import '../widgets/cheer_character.dart';
 import '../widgets/monster_display.dart';
+import '../widgets/pin_pad_dialog.dart';
 import '../widgets/stage_tracker.dart';
 
 /// The guided task loop: Idle -> Working -> Evolving -> Idle.
@@ -133,6 +136,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   Future<void> _onReady() async {
     if (_phase != _Phase.working || !_ready) return;
+
+    // Parental lock: a grown-up approves the evolution before it happens.
+    // The work timer keeps running while the dialog is up, so a denied or
+    // dismissed approval loses nothing — the kid can call the parent over
+    // and press Ready again.
+    final approved = await ParentGate.requestApproval(context);
+    if (!mounted || !approved || _phase != _Phase.working) return;
+
     _workTimer?.cancel();
     final taskSeconds = _elapsed;
 
@@ -264,69 +275,102 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       builder: (sheetContext) {
         final scheme = Theme.of(sheetContext).colorScheme;
         return SafeArea(
-          child: Consumer<MonsterState>(
-            builder: (context, monster, _) {
-              final profiles = monster.profiles;
-              final activeId = monster.activeProfile.id;
-              return Column(
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        'Users',
-                        style: Theme.of(sheetContext).textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.bold),
+          // Scrollable so many profiles + the parent-lock row never overflow
+          // the sheet's height budget.
+          child: SingleChildScrollView(
+            child: Consumer<MonsterState>(
+              builder: (context, monster, _) {
+                final profiles = monster.profiles;
+                final activeId = monster.activeProfile.id;
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'Users',
+                          style: Theme.of(sheetContext).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.bold),
+                        ),
                       ),
                     ),
-                  ),
-                  for (final p in profiles)
-                    ListTile(
-                      leading: Text(
-                        p.animal,
-                        style: const TextStyle(fontSize: 28),
-                      ),
-                      title: Text(p.name),
-                      selected: p.id == activeId,
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: <Widget>[
-                          if (p.id == activeId)
-                            Icon(Icons.check_circle, color: scheme.primary),
-                          IconButton(
-                            icon: const Icon(Icons.edit_outlined),
-                            tooltip: 'Edit',
-                            onPressed: () => _openProfileEditor(existing: p),
-                          ),
-                          if (profiles.length > 1)
+                    for (final p in profiles)
+                      ListTile(
+                        leading: Text(
+                          p.animal,
+                          style: const TextStyle(fontSize: 28),
+                        ),
+                        title: Text(p.name),
+                        selected: p.id == activeId,
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: <Widget>[
+                            if (p.id == activeId)
+                              Icon(Icons.check_circle, color: scheme.primary),
                             IconButton(
-                              icon: const Icon(Icons.delete_outline),
-                              tooltip: 'Delete',
-                              onPressed: () => _confirmDeleteProfile(p),
+                              icon: const Icon(Icons.edit_outlined),
+                              tooltip: 'Edit',
+                              onPressed: () => _openProfileEditor(existing: p),
                             ),
-                        ],
+                            if (profiles.length > 1)
+                              IconButton(
+                                icon: const Icon(Icons.delete_outline),
+                                tooltip: 'Delete',
+                                onPressed: () => _confirmDeleteProfile(p),
+                              ),
+                          ],
+                        ),
+                        onTap: () {
+                          Navigator.pop(sheetContext);
+                          _selectProfile(p.id);
+                        },
                       ),
-                      onTap: () {
-                        Navigator.pop(sheetContext);
-                        _selectProfile(p.id);
-                      },
+                    const Divider(height: 8),
+                    ListTile(
+                      leading: const Icon(Icons.add),
+                      title: const Text('Add user'),
+                      onTap: () => _openProfileEditor(),
                     ),
-                  const Divider(height: 8),
-                  ListTile(
-                    leading: const Icon(Icons.add),
-                    title: const Text('Add user'),
-                    onTap: () => _openProfileEditor(),
-                  ),
-                  const SizedBox(height: 8),
-                ],
-              );
-            },
+                    const Divider(height: 8),
+                    Consumer<ParentLockState>(
+                      builder: (context, lock, _) => SwitchListTile(
+                        secondary: const Icon(Icons.lock_outline),
+                        title: const Text('Parent lock'),
+                        subtitle: const Text(
+                          'A grown-up approves each evolution',
+                        ),
+                        value: lock.enabled,
+                        onChanged: (on) => _toggleParentLock(on),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+                );
+              },
+            ),
           ),
         );
       },
     );
+  }
+
+  /// Enable (choose a PIN) or disable (verify the PIN) the parental lock.
+  Future<void> _toggleParentLock(bool on) async {
+    final lock = context.read<ParentLockState>();
+    if (on == lock.enabled) return;
+    if (on) {
+      final pin = await showPinSetupDialog(context);
+      if (!mounted || pin == null) return;
+      await lock.enable(pin);
+      analytics.logEvent('parent_lock_enabled', const <String, Object>{});
+    } else {
+      final pin = await showPinVerifyDialog(context);
+      if (!mounted || pin == null) return;
+      await lock.disable(pin);
+      analytics.logEvent('parent_lock_disabled', const <String, Object>{});
+    }
   }
 
   Future<void> _selectProfile(String id) async {
@@ -534,7 +578,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         );
 
       case _Phase.working:
-        final remaining = (_minTaskSeconds - _elapsed).clamp(0, _minTaskSeconds);
+        final remaining = (_minTaskSeconds - _elapsed).clamp(
+          0,
+          _minTaskSeconds,
+        );
         return Column(
           key: const ValueKey<String>('working'),
           mainAxisSize: MainAxisSize.min,

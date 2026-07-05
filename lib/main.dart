@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 
 import 'firebase_options.dart';
 import 'models/monster_state.dart';
+import 'models/parent_lock_state.dart';
 import 'screens/splash_screen.dart';
 import 'services/analytics.dart';
 
@@ -23,13 +24,18 @@ Future<void> main() async {
   }
 
   final monster = MonsterState();
+  final parentLock = ParentLockState();
   // Load persisted progress before the first frame so the UI opens in the
   // correct state.
   await monster.load();
+  await parentLock.load();
 
   runApp(
-    ChangeNotifierProvider<MonsterState>.value(
-      value: monster,
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider<MonsterState>.value(value: monster),
+        ChangeNotifierProvider<ParentLockState>.value(value: parentLock),
+      ],
       child: const TaskMonsterApp(),
     ),
   );

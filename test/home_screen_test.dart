@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:habit_monster/models/monster_state.dart';
+import 'package:habit_monster/models/parent_lock_state.dart';
 import 'package:habit_monster/screens/home_screen.dart';
 import 'package:habit_monster/version.dart';
 import 'package:provider/provider.dart';
@@ -34,16 +35,32 @@ void main() {
     SharedPreferences.setMockInitialValues(<String, Object>{});
   });
 
+  late ParentLockState lockState;
+
   Future<MonsterState> pumpApp(WidgetTester tester) async {
     final state = MonsterState();
     await state.load();
+    lockState = ParentLockState();
+    await lockState.load();
     await tester.pumpWidget(
-      ChangeNotifierProvider<MonsterState>.value(
-        value: state,
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider<MonsterState>.value(value: state),
+          ChangeNotifierProvider<ParentLockState>.value(value: lockState),
+        ],
         child: const MaterialApp(home: HomeScreen()),
       ),
     );
     return state;
+  }
+
+  /// Taps the given digits on the PIN keypad, pumping between taps.
+  Future<void> enterPin(WidgetTester tester, String pin) async {
+    for (final digit in pin.split('')) {
+      await tester.tap(find.widgetWithText(FilledButton, digit));
+      await tester.pump();
+    }
+    await tester.pump(const Duration(milliseconds: 500)); // shake animation
   }
 
   // Cancels the periodic ticker / animation timers before the framework's
@@ -198,6 +215,93 @@ void main() {
 
     expect(state.currentStage, 1);
     expect(find.text('START'), findsOneWidget); // back to idle
+
+    await teardownTree(tester);
+  });
+
+  testWidgets('parent lock gates Ready behind the PIN dialog', (tester) async {
+    final state = await pumpApp(tester);
+    await lockState.enable('1234');
+    await tester.pump();
+
+    // Complete a task and press Ready -> the grown-up dialog appears and the
+    // stage must NOT advance yet.
+    await tester.tap(find.text('START'));
+    await tester.pump();
+    for (var i = 0; i < 10; i++) {
+      await tester.pump(const Duration(seconds: 1));
+    }
+    await tester.tap(find.text("I'M READY!"));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
+    expect(find.text('Ask a grown-up! 🔒'), findsOneWidget);
+    expect(state.currentStage, 1);
+
+    // Wrong PIN: rejected, dialog stays, still stage 1.
+    await enterPin(tester, '9999');
+    expect(find.text('Wrong PIN — try again'), findsOneWidget);
+    expect(find.text('Ask a grown-up! 🔒'), findsOneWidget);
+    expect(state.currentStage, 1);
+
+    // Correct PIN: approved, evolution runs.
+    await enterPin(tester, '1234');
+    await tester.pump();
+    expect(state.currentStage, 2);
+    expect(find.text('Evolving…'), findsOneWidget);
+
+    await tester.pump(const Duration(seconds: 3));
+    await teardownTree(tester);
+  });
+
+  testWidgets('dismissing the parent dialog keeps the task running', (
+    tester,
+  ) async {
+    final state = await pumpApp(tester);
+    await lockState.enable('1234');
+    await tester.pump();
+
+    await tester.tap(find.text('START'));
+    await tester.pump();
+    for (var i = 0; i < 10; i++) {
+      await tester.pump(const Duration(seconds: 1));
+    }
+    await tester.tap(find.text("I'M READY!"));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
+
+    // Cancel: no evolution, and Ready is still available for a retry.
+    await tester.tap(find.text('Cancel'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
+    expect(state.currentStage, 1);
+    expect(find.text("I'M READY!"), findsOneWidget);
+
+    await teardownTree(tester);
+  });
+
+  testWidgets('parent lock is enabled from the users sheet via PIN setup', (
+    tester,
+  ) async {
+    await pumpApp(tester);
+
+    // Open the users sheet and flip the Parent lock switch.
+    await tester.tap(find.widgetWithText(TextButton, 'Player 1'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
+    expect(find.text('Parent lock'), findsOneWidget);
+    await tester.tap(find.byType(Switch));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
+
+    // Choose and confirm a PIN.
+    expect(find.text('Set parent PIN'), findsOneWidget);
+    await enterPin(tester, '1234');
+    expect(find.text('Confirm PIN'), findsOneWidget);
+    await enterPin(tester, '1234');
+    await tester.pump();
+
+    expect(lockState.enabled, isTrue);
+    expect(lockState.verify('1234'), isTrue);
 
     await teardownTree(tester);
   });

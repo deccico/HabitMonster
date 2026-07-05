@@ -21,6 +21,7 @@ The application is a standalone, client-side mobile and web productivity tool. I
 * **Cooldown Lockout:** A strict 60-second timer. The UI must clearly indicate how much time is left before the button becomes active again (e.g., a countdown text or a grayed-out button).
 * **Persistent State:** The app must remember the current evolution stage (1–50) and the exact timestamp of the last button press.
 * **Visual/Audio Feedback:** A flash, shake, or particle effect upon pressing the button, accompanied by a satisfying sound effect.
+* **Parental Lock (optional, default off):** A grown-up gate on the evolution approval. When enabled (toggle in the users sheet), pressing "I'M READY!" opens a kid-friendly "Ask a grown-up!" dialog and the evolution only proceeds after the correct 4-digit parent PIN. The PIN is stored as a salted SHA-256 hash in local storage; five wrong tries lock the keypad for 30 seconds. This is friction against self-certified rewards, not security — clearing site data clears the lock. Biometric approval (fingerprint via `local_auth`) is a planned enhancement for the mobile builds; the check is isolated in `ParentGate` so it can slot in without touching the flow.
 
 ### 1.4 User Interface (UI) Layout
 
