@@ -413,13 +413,19 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
     return Scaffold(
       appBar: AppBar(
-        centerTitle: true,
+        centerTitle: false,
         // Explicit foreground so the title + actions stay high-contrast on the
         // dark surface (the default icon colour was blending in).
         foregroundColor: scheme.onSurface,
-        title: const Text(
-          'Task Monster',
-          style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 0.5),
+        title: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Image.asset(
+            'assets/images/habit-monster.png',
+            height: 40,
+            fit: BoxFit.contain,
+            filterQuality: FilterQuality.medium,
+            semanticLabel: 'Task Monster',
+          ),
         ),
         actions: <Widget>[
           Padding(

@@ -74,6 +74,7 @@ flutter:
   assets:
     - assets/audio/evolve.wav
     - assets/audio/alarm.wav
+    - assets/images/habit-monster.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
