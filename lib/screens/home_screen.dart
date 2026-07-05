@@ -414,6 +414,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     return Scaffold(
       appBar: AppBar(
         centerTitle: false,
+        // Taller than the 56px default so the logo can render at 80px
+        // without cropping.
+        toolbarHeight: 96,
         // Explicit foreground so the title + actions stay high-contrast on the
         // dark surface (the default icon colour was blending in).
         foregroundColor: scheme.onSurface,
@@ -421,7 +424,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           padding: const EdgeInsets.symmetric(vertical: 8),
           child: Image.asset(
             'assets/images/habit-monster.png',
-            height: 40,
+            height: 80,
             fit: BoxFit.contain,
             filterQuality: FilterQuality.medium,
             semanticLabel: 'Task Monster',
