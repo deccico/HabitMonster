@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../data/stages.dart';
 import '../models/monster_state.dart';
@@ -27,6 +28,10 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   /// Minimum seconds the user must "work" before Ready unlocks.
   static const int _minTaskSeconds = 10;
+
+  /// Seconds of work after which we cheerfully nudge the user to wrap up.
+  /// ~5 minutes is about the practical limit to finish a single task.
+  static const int _alarmSeconds = 5 * 60; // 300
 
   /// How long the evolution celebration plays before returning to Idle.
   static const int _evolveSeconds = 3;
@@ -51,10 +56,14 @@ class _HomeScreenState extends State<HomeScreen> {
   ];
 
   final AudioPlayer _player = AudioPlayer();
+  // Separate player so the wrap-up alarm can't be cut off by (or cut off) the
+  // evolve sound if the two ever overlap.
+  final AudioPlayer _alarmPlayer = AudioPlayer();
   final Random _rng = Random();
 
   _Phase _phase = _Phase.idle;
   int _elapsed = 0; // seconds since Start, during the working phase
+  bool _alarmFired = false; // true once the 5-minute wrap-up nudge has played
   int _triggerCount = 0; // drives the monster evolve animation
   late String _cheerMessage = _pick(_idleCheers);
 
@@ -69,6 +78,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _player.setReleaseMode(ReleaseMode.stop);
+    _alarmPlayer.setReleaseMode(ReleaseMode.stop);
   }
 
   @override
@@ -76,6 +86,8 @@ class _HomeScreenState extends State<HomeScreen> {
     _workTimer?.cancel();
     _evolveTimer?.cancel();
     _player.dispose();
+    _alarmPlayer.dispose();
+    unawaited(_setWakelock(false));
     super.dispose();
   }
 
@@ -87,12 +99,20 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       _phase = _Phase.working;
       _elapsed = 0;
+      _alarmFired = false;
       _cheerMessage = _pick(_workingCheers);
     });
     _workTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!mounted) return;
-      setState(() => _elapsed++);
+      setState(() {
+        _elapsed++;
+        if (!_alarmFired && _elapsed >= _alarmSeconds) {
+          _alarmFired = true;
+          _fireWrapUpAlarm();
+        }
+      });
     });
+    unawaited(_setWakelock(true));
   }
 
   Future<void> _onReady() async {
@@ -122,11 +142,29 @@ class _HomeScreenState extends State<HomeScreen> {
     _evolveTimer?.cancel();
     _evolveTimer = Timer(const Duration(seconds: _evolveSeconds), () {
       if (!mounted) return;
+      unawaited(_setWakelock(false));
       setState(() {
         _phase = _Phase.idle;
         _cheerMessage = _pick(_idleCheers);
       });
     });
+  }
+
+  /// The cheerful 5-minute nudge: chime + buzz + an upbeat "wrap it up"
+  /// message, prompting the user to finish and hit READY.
+  void _fireWrapUpAlarm() {
+    _cheerMessage = "Time's up — hit READY! 🎉";
+    unawaited(HapticFeedback.mediumImpact());
+    unawaited(_playAlarm());
+  }
+
+  Future<void> _playAlarm() async {
+    try {
+      await _alarmPlayer.stop();
+      await _alarmPlayer.play(AssetSource('audio/alarm.wav'));
+    } catch (_) {
+      // Sound is non-critical; never let an audio failure break the flow.
+    }
   }
 
   Future<void> _playSound() async {
@@ -136,6 +174,15 @@ class _HomeScreenState extends State<HomeScreen> {
     } catch (_) {
       // Sound is non-critical; never let an audio failure break the flow.
     }
+  }
+
+  /// Keep the screen awake during a task so the timer + 5-minute nudge stay
+  /// visible. Non-critical: a failure (e.g. a browser without Wake Lock
+  /// support) must never break the flow.
+  Future<void> _setWakelock(bool on) async {
+    try {
+      await WakelockPlus.toggle(enable: on);
+    } catch (_) {}
   }
 
   Future<void> _confirmReset() async {
@@ -178,9 +225,11 @@ class _HomeScreenState extends State<HomeScreen> {
     if (!mounted) return;
     _workTimer?.cancel();
     _evolveTimer?.cancel();
+    unawaited(_setWakelock(false));
     setState(() {
       _phase = _Phase.idle;
       _elapsed = 0;
+      _alarmFired = false;
       _cheerMessage = _pick(_idleCheers);
     });
   }
@@ -275,19 +324,26 @@ class _HomeScreenState extends State<HomeScreen> {
           key: const ValueKey<String>('working'),
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            CheerCharacter(emoji: '💪', message: _cheerMessage),
+            CheerCharacter(
+              emoji: _alarmFired ? '⏰' : '💪',
+              message: _cheerMessage,
+            ),
             const SizedBox(height: 20),
             Text(
               _formatTime(_elapsed),
               style: theme.textTheme.displaySmall?.copyWith(
                 fontFeatures: const <FontFeature>[FontFeature.tabularFigures()],
                 fontWeight: FontWeight.bold,
+                color: _alarmFired ? Colors.amber.shade700 : null,
               ),
             ),
             Text(
-              'Task in progress',
+              _alarmFired ? 'Time to wrap up! 🎉' : 'Task in progress',
               style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
+                color: _alarmFired
+                    ? Colors.amber.shade700
+                    : theme.colorScheme.onSurfaceVariant,
+                fontWeight: _alarmFired ? FontWeight.bold : null,
               ),
             ),
             const SizedBox(height: 16),
