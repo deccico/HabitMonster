@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.0+1
+version: 0.0.1+1
 
 environment:
   sdk: ^3.12.2
@@ -41,8 +41,13 @@ dependencies:
   shared_preferences: ^2.3.2
   # Low-latency evolution sound effect (spec 2.5)
   audioplayers: ^6.1.0
+  # Keep the screen awake while a task is in progress so the timer + 5-minute
+  # nudge stay visible. No permissions/manifest changes required on any platform.
+  wakelock_plus: ^1.6.1
   # Dramatic flash/shake/scale feedback (spec 2.5)
   flutter_animate: ^4.5.0
+  firebase_core: ^4.11.0
+  firebase_analytics: ^12.4.3
 
 dev_dependencies:
   flutter_test:
@@ -68,6 +73,7 @@ flutter:
 
   assets:
     - assets/audio/evolve.wav
+    - assets/audio/alarm.wav
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

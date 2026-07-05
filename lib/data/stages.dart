@@ -5,11 +5,8 @@
 /// reads as visual progress, plus a short flavour name shown in the UI.
 library;
 
-/// Total number of evolution stages (spec 1.3).
+/// Total number of evolution stages.
 const int kMaxStage = 20;
-
-/// Mandatory cooldown between evolutions, in seconds (spec 1.3 / 2.3).
-const int kCooldownSeconds = 60;
 
 /// Emoji shown for each stage. Index `i` corresponds to stage `i + 1`.
 ///

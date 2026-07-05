@@ -1,15 +1,30 @@
+import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import 'firebase_options.dart';
 import 'models/monster_state.dart';
-import 'screens/home_screen.dart';
+import 'screens/splash_screen.dart';
+import 'services/analytics.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Analytics is non-critical: if Firebase fails to initialise the app still
+  // runs, just without event collection.
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    analytics.attach(FirebaseAnalytics.instance);
+  } catch (e) {
+    debugPrint('Firebase init skipped: $e');
+  }
+
   final monster = MonsterState();
   // Load persisted progress before the first frame so the UI opens in the
-  // correct state (including any remaining cooldown after an app restart).
+  // correct state.
   await monster.load();
 
   runApp(
@@ -35,7 +50,10 @@ class TaskMonsterApp extends StatelessWidget {
           brightness: Brightness.dark,
         ),
       ),
-      home: const HomeScreen(),
+      navigatorObservers: <NavigatorObserver>[
+        if (analytics.observer != null) analytics.observer!,
+      ],
+      home: const SplashScreen(),
     );
   }
 }
