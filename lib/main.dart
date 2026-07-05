@@ -8,6 +8,7 @@ import 'models/monster_state.dart';
 import 'models/parent_lock_state.dart';
 import 'screens/splash_screen.dart';
 import 'services/analytics.dart';
+import 'services/update_checker.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -30,11 +31,15 @@ Future<void> main() async {
   await monster.load();
   await parentLock.load();
 
+  // Poll version.json so long-lived tabs learn about new deploys (web only).
+  final updateChecker = UpdateChecker()..start();
+
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider<MonsterState>.value(value: monster),
         ChangeNotifierProvider<ParentLockState>.value(value: parentLock),
+        ChangeNotifierProvider<UpdateChecker>.value(value: updateChecker),
       ],
       child: const TaskMonsterApp(),
     ),

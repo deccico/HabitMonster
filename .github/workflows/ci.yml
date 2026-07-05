@@ -27,4 +27,6 @@ jobs:
         run: flutter test
 
       - name: Build web
-        run: flutter build web
+        # --pwa-strategy=none: no service worker, so deploys go live on the
+        # next reload instead of lagging one visit behind a cache-first SW.
+        run: flutter build web --pwa-strategy=none

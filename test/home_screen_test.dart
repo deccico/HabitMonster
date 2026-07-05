@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:habit_monster/models/monster_state.dart';
 import 'package:habit_monster/models/parent_lock_state.dart';
 import 'package:habit_monster/screens/home_screen.dart';
+import 'package:habit_monster/services/update_checker.dart';
 import 'package:habit_monster/version.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -36,17 +37,22 @@ void main() {
   });
 
   late ParentLockState lockState;
+  late UpdateChecker updateChecker;
+  String? deployedVersion; // what the fake version.json fetch reports
 
   Future<MonsterState> pumpApp(WidgetTester tester) async {
     final state = MonsterState();
     await state.load();
     lockState = ParentLockState();
     await lockState.load();
+    deployedVersion = null;
+    updateChecker = UpdateChecker(fetchVersion: () async => deployedVersion);
     await tester.pumpWidget(
       MultiProvider(
         providers: [
           ChangeNotifierProvider<MonsterState>.value(value: state),
           ChangeNotifierProvider<ParentLockState>.value(value: lockState),
+          ChangeNotifierProvider<UpdateChecker>.value(value: updateChecker),
         ],
         child: const MaterialApp(home: HomeScreen()),
       ),
@@ -302,6 +308,25 @@ void main() {
 
     expect(lockState.enabled, isTrue);
     expect(lockState.verify('1234'), isTrue);
+
+    await teardownTree(tester);
+  });
+
+  testWidgets('update banner appears when a newer deploy is detected', (
+    tester,
+  ) async {
+    await pumpApp(tester);
+    expect(find.text('✨ A new version is ready!'), findsNothing);
+
+    deployedVersion = '99.0.0';
+    await updateChecker.check();
+    await tester.pump();
+
+    expect(find.text('✨ A new version is ready!'), findsOneWidget);
+    expect(find.widgetWithText(FilledButton, 'Update'), findsOneWidget);
+    // Tapping Update must not crash (the reload is a no-op off web).
+    await tester.tap(find.widgetWithText(FilledButton, 'Update'));
+    await tester.pump();
 
     await teardownTree(tester);
   });

@@ -38,7 +38,14 @@ echo "==> GitHub CI check (${sha})"
 ./scripts/check_ci.sh "$sha"
 
 echo "==> Build web"
-flutter build web
+# --pwa-strategy=none: no service worker (web/flutter_service_worker.js ships
+# a self-destruct worker for browsers that registered the old one), so with
+# the no-cache hosting headers every reload gets the freshly deployed app.
+flutter build web --pwa-strategy=none
+# The build writes an EMPTY flutter_service_worker.js that clobbers the
+# self-destruct worker copied from web/ — restore it so existing browsers
+# unregister the old cache-first worker instead of keeping a zombie one.
+cp web/flutter_service_worker.js build/web/flutter_service_worker.js
 
 echo "==> Verify web plugin registrant"
 # Guard against a stale generated registrant (bit RoadMate in v1.0.9-v1.0.18:

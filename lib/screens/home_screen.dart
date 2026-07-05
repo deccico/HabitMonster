@@ -15,6 +15,7 @@ import '../models/parent_lock_state.dart';
 import '../models/profile.dart';
 import '../services/analytics.dart';
 import '../services/parent_gate.dart';
+import '../services/update_checker.dart';
 import '../version.dart';
 import '../widgets/cheer_character.dart';
 import '../widgets/monster_display.dart';
@@ -107,6 +108,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     // staying awake.
     if (state == AppLifecycleState.resumed && _phase == _Phase.working) {
       unawaited(_setWakelock(true));
+    }
+    // A tab refocused after days away should learn about new deploys
+    // immediately rather than waiting for the next poll.
+    if (state == AppLifecycleState.resumed) {
+      unawaited(context.read<UpdateChecker>().check());
     }
   }
 
@@ -546,9 +552,50 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 ),
               ),
             ),
+            Positioned(
+              top: 8,
+              left: 16,
+              right: 16,
+              child: Center(child: _buildUpdateBanner(context)),
+            ),
           ],
         ),
       ),
+    );
+  }
+
+  /// A friendly pill prompting a reload once a newer deploy is detected.
+  Widget _buildUpdateBanner(BuildContext context) {
+    return Consumer<UpdateChecker>(
+      builder: (context, checker, _) {
+        if (!checker.updateAvailable) return const SizedBox.shrink();
+        final scheme = Theme.of(context).colorScheme;
+        return Material(
+          color: scheme.primaryContainer,
+          borderRadius: BorderRadius.circular(24),
+          elevation: 3,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 6, 6, 6),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Flexible(
+                  child: Text(
+                    '✨ A new version is ready!',
+                    style: TextStyle(color: scheme.onPrimaryContainer),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                FilledButton(
+                  onPressed: checker.applyUpdate,
+                  child: const Text('Update'),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
