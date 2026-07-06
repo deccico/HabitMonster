@@ -82,8 +82,9 @@ void main() {
     expect(find.text('Are you ready to start your task?'), findsOneWidget);
     expect(find.text('START'), findsOneWidget);
     expect(find.text('Stage 1'), findsOneWidget);
-    // Reset control is present and labelled in the app bar.
-    expect(find.widgetWithText(TextButton, 'Reset'), findsOneWidget);
+    // Reset control is present in the app bar (icon-only, with a tooltip).
+    expect(find.byTooltip('Reset'), findsOneWidget);
+    expect(find.byIcon(Icons.restart_alt), findsOneWidget);
     // The active profile button shows the default user's name.
     expect(find.widgetWithText(TextButton, 'Player 1'), findsOneWidget);
     // The version badge is shown.

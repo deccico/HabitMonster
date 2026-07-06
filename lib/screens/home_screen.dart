@@ -469,19 +469,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           ),
         ),
         actions: <Widget>[
-          Consumer<ParentLockState>(
-            builder: (context, lock, _) => IconButton(
-              icon: Icon(
-                lock.enabled ? Icons.lock : Icons.lock_open_outlined,
-              ),
-              color: lock.enabled ? scheme.primary : null,
-              tooltip: lock.enabled
-                  ? 'Parent lock is on'
-                  : 'Set up parent lock',
-              visualDensity: VisualDensity.compact,
-              onPressed: () => _toggleParentLock(!lock.enabled),
-            ),
-          ),
           Padding(
             padding: const EdgeInsets.only(right: 4),
             child: TextButton.icon(
@@ -501,13 +488,27 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               ),
             ),
           ),
+          IconButton(
+            icon: const Icon(Icons.restart_alt),
+            color: scheme.primary,
+            tooltip: 'Reset',
+            visualDensity: VisualDensity.compact,
+            onPressed: _confirmReset,
+          ),
           Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: TextButton.icon(
-              icon: const Icon(Icons.restart_alt),
-              label: const Text('Reset'),
-              onPressed: _confirmReset,
-              style: TextButton.styleFrom(foregroundColor: scheme.primary),
+            padding: const EdgeInsets.only(right: 4),
+            child: Consumer<ParentLockState>(
+              builder: (context, lock, _) => IconButton(
+                icon: Icon(
+                  lock.enabled ? Icons.lock : Icons.lock_open_outlined,
+                ),
+                color: scheme.primary,
+                tooltip: lock.enabled
+                    ? 'Parent lock is on'
+                    : 'Set up parent lock',
+                visualDensity: VisualDensity.compact,
+                onPressed: () => _toggleParentLock(!lock.enabled),
+              ),
             ),
           ),
         ],
