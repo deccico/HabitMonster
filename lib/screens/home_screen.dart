@@ -339,18 +339,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       title: const Text('Add user'),
                       onTap: () => _openProfileEditor(),
                     ),
-                    const Divider(height: 8),
-                    Consumer<ParentLockState>(
-                      builder: (context, lock, _) => SwitchListTile(
-                        secondary: const Icon(Icons.lock_outline),
-                        title: const Text('Parent lock'),
-                        subtitle: const Text(
-                          'A grown-up approves each evolution',
-                        ),
-                        value: lock.enabled,
-                        onChanged: (on) => _toggleParentLock(on),
-                      ),
-                    ),
                     const SizedBox(height: 8),
                   ],
                 );
@@ -481,6 +469,19 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           ),
         ),
         actions: <Widget>[
+          Consumer<ParentLockState>(
+            builder: (context, lock, _) => IconButton(
+              icon: Icon(
+                lock.enabled ? Icons.lock : Icons.lock_open_outlined,
+              ),
+              color: lock.enabled ? scheme.primary : null,
+              tooltip: lock.enabled
+                  ? 'Parent lock is on'
+                  : 'Set up parent lock',
+              visualDensity: VisualDensity.compact,
+              onPressed: () => _toggleParentLock(!lock.enabled),
+            ),
+          ),
           Padding(
             padding: const EdgeInsets.only(right: 4),
             child: TextButton.icon(

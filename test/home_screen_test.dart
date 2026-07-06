@@ -285,17 +285,14 @@ void main() {
     await teardownTree(tester);
   });
 
-  testWidgets('parent lock is enabled from the users sheet via PIN setup', (
+  testWidgets('parent lock is enabled from the header lock icon', (
     tester,
   ) async {
     await pumpApp(tester);
 
-    // Open the users sheet and flip the Parent lock switch.
-    await tester.tap(find.widgetWithText(TextButton, 'Player 1'));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 350));
-    expect(find.text('Parent lock'), findsOneWidget);
-    await tester.tap(find.byType(Switch));
+    // The header shows an open lock while the lock is off.
+    expect(find.byIcon(Icons.lock_open_outlined), findsOneWidget);
+    await tester.tap(find.byIcon(Icons.lock_open_outlined));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 350));
 
@@ -308,6 +305,15 @@ void main() {
 
     expect(lockState.enabled, isTrue);
     expect(lockState.verify('1234'), isTrue);
+    // Icon reflects the enabled state.
+    expect(find.byIcon(Icons.lock), findsOneWidget);
+    expect(find.byIcon(Icons.lock_open_outlined), findsNothing);
+
+    // The users sheet no longer hosts the toggle.
+    await tester.tap(find.widgetWithText(TextButton, 'Player 1'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
+    expect(find.text('Parent lock'), findsNothing);
 
     await teardownTree(tester);
   });
