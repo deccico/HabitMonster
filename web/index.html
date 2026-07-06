@@ -42,5 +42,16 @@
     * https://docs.flutter.dev/platform-integration/web/initialization
   -->
   <script src="flutter_bootstrap.js" async></script>
+  <!--
+    Builds use --pwa-strategy=none (no generated service worker), so register
+    our own network-first worker for offline support. See
+    flutter_service_worker.js for the strategy.
+  -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () =>
+        navigator.serviceWorker.register('flutter_service_worker.js'));
+    }
+  </script>
 </body>
 </html>

@@ -40,6 +40,7 @@ The application is a standalone, client-side mobile and web productivity tool. I
 * **Framework:** Flutter (Dart).
 * **Deployment Targets:** Android (APK/AAB), iOS, and Flutter Web.
 * **Architecture:** 100% Client-side. No backend server, APIs, or external databases are required. All assets will be bundled directly into the application.
+* **Freshness & offline:** Hosting serves everything with `Cache-Control: no-cache`; a custom **network-first** service worker (`web/flutter_service_worker.js`, builds use `--pwa-strategy=none`) mirrors responses into a cache so the app launches offline with the last-seen version, while online loads always get the latest deploy. The app also polls `version.json` and shows an in-app "new version" prompt for long-lived tabs.
 
 ### 2.2 Data Models & State Management
 

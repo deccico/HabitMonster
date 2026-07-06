@@ -43,9 +43,29 @@ echo "==> Build web"
 # the no-cache hosting headers every reload gets the freshly deployed app.
 flutter build web --pwa-strategy=none
 # The build writes an EMPTY flutter_service_worker.js that clobbers the
-# self-destruct worker copied from web/ — restore it so existing browsers
-# unregister the old cache-first worker instead of keeping a zombie one.
+# network-first offline worker copied from web/ — restore it, then inject the
+# actual build file list as the offline precache manifest (first visit must
+# cache the whole shell; runtime caching only sees post-activation requests).
 cp web/flutter_service_worker.js build/web/flutter_service_worker.js
+python3 - <<'PY'
+import json, pathlib, re
+root = pathlib.Path('build/web')
+skip = {'flutter_service_worker.js', 'version.json', '.last_build_id', 'NOTICES'}
+files = ['./'] + sorted(
+    str(p.relative_to(root)).replace('\\', '/')
+    for p in root.rglob('*')
+    if p.is_file() and p.name not in skip
+)
+sw = root / 'flutter_service_worker.js'
+text, count = re.subn(
+    r'/\*__PRECACHE__\*/ \[[^\]]*\]',
+    '/*__PRECACHE__*/ ' + json.dumps(files),
+    sw.read_text(),
+)
+assert count == 1, 'precache placeholder not found in flutter_service_worker.js'
+sw.write_text(text)
+print(f'precache manifest: {len(files)} files')
+PY
 
 echo "==> Verify web plugin registrant"
 # Guard against a stale generated registrant (bit RoadMate in v1.0.9-v1.0.18:
