@@ -10,7 +10,7 @@ import 'profile.dart';
 /// Holds and persists monster progress for the active user profile.
 ///
 /// The device can hold several [Profile]s, each with its own independent
-/// progress (current stage 1..20 + a prestige counter). All state is persisted
+/// progress (current stage 1..kMaxStage + a prestige counter). All state is persisted
 /// via [SharedPreferences]:
 ///
 ///  * `profiles`        — JSON list of every profile (id, name, animal).
@@ -38,7 +38,7 @@ class MonsterState extends ChangeNotifier {
   /// Re-entrancy guard so a single evolution can't advance two stages.
   bool _isEvolving = false;
 
-  /// Whether the most recent [evolve] wrapped from stage 20 back to 1.
+  /// Whether the most recent [evolve] wrapped from the final stage back to 1.
   /// The UI reads this to play a bigger "prestige" celebration.
   bool _lastWasPrestige = false;
 
@@ -109,7 +109,7 @@ class MonsterState extends ChangeNotifier {
     _lastWasPrestige = false;
   }
 
-  /// Advance the active profile one stage, wrapping to a prestige at stage 20.
+  /// Advance the active profile one stage, wrapping to a prestige at the final stage.
   ///
   /// Returns `true` if the evolution happened, `false` if an evolution was
   /// already in flight. On success the new state is persisted and listeners

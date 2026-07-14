@@ -32,7 +32,7 @@ void main() {
       expect(state.lastWasPrestige, isFalse);
     });
 
-    test('wraps from stage 20 to 1 and increments prestige', () async {
+    test('wraps from the final stage to 1 and increments prestige', () async {
       final state = MonsterState();
       await state.load();
 
