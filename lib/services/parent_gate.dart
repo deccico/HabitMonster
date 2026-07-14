@@ -6,15 +6,15 @@ import '../widgets/pin_pad_dialog.dart';
 
 /// The single seam where a grown-up approves an evolution.
 ///
-/// Today approval means entering the parent PIN. When the Android/iOS builds
-/// ship, this is the one place to try `local_auth` biometrics first and fall
-/// back to the PIN dialog.
+/// Approval means entering the parent PIN, or — on devices with an enrolled
+/// biometric reader — a fingerprint, offered inside the verify dialog with
+/// the PIN pad always available as fallback.
 class ParentGate {
   ParentGate._();
 
   /// Returns `true` when the evolution may proceed: immediately if the lock
-  /// is off, otherwise after a correct PIN entry. Dismissing the dialog
-  /// denies.
+  /// is off, otherwise after a correct PIN entry or a successful biometric
+  /// read. Dismissing the dialog denies.
   static Future<bool> requestApproval(BuildContext context) async {
     final lock = context.read<ParentLockState>();
     if (!lock.enabled) return true;

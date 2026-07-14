@@ -5,14 +5,17 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 
 import '../models/parent_lock_state.dart';
+import '../services/biometric_gate.dart';
 
 const int _pinLength = 4;
 
-/// Ask a grown-up to enter the current parent PIN.
+/// Ask a grown-up to approve: fingerprint (when the device has one) or the
+/// current parent PIN.
 ///
-/// Resolves to the correct PIN string once entered (callers that need it,
-/// e.g. disabling the lock, get it; gate callers just check for non-null),
-/// or `null` if dismissed.
+/// Resolves to the PIN string once entered, or the empty string when the
+/// approval came from a successful biometric read (callers that need the PIN
+/// itself, e.g. disabling the lock, still get it from PIN entry; gate callers
+/// just check for non-null), or `null` if dismissed.
 Future<String?> showPinVerifyDialog(BuildContext context) {
   return showDialog<String>(
     context: context,
@@ -43,6 +46,9 @@ class _PinPadDialog extends StatefulWidget {
 class _PinPadDialogState extends State<_PinPadDialog> {
   String _entered = '';
 
+  /// True once the biometric reader is confirmed present + enrolled.
+  bool _bioAvailable = false;
+
   /// Setup happens in two passes: choose, then confirm.
   String? _firstPass;
 
@@ -53,6 +59,28 @@ class _PinPadDialogState extends State<_PinPadDialog> {
   Timer? _cooldownTicker;
 
   bool get _isSetup => widget.mode == _PinMode.setup;
+
+  @override
+  void initState() {
+    super.initState();
+    if (!_isSetup) _checkBiometrics();
+  }
+
+  Future<void> _checkBiometrics() async {
+    final available = await context.read<BiometricGate>().available;
+    if (!mounted || !available) return;
+    setState(() => _bioAvailable = true);
+  }
+
+  Future<void> _onFingerprint() async {
+    final ok = await context.read<BiometricGate>().authenticate(
+      'A parent needs to approve this',
+    );
+    if (!mounted || !ok) return;
+    // Empty string = "approved without typing the PIN"; callers only check
+    // for non-null.
+    Navigator.pop(context, '');
+  }
 
   @override
   void dispose() {
@@ -144,87 +172,104 @@ class _PinPadDialogState extends State<_PinPadDialog> {
 
     return AlertDialog(
       title: Text(title, textAlign: TextAlign.center),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          Text(subtitle, textAlign: TextAlign.center),
-          const SizedBox(height: 16),
-          Row(
-                key: ValueKey<int>(_shakeTick),
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: <Widget>[
-                  for (var i = 0; i < _pinLength; i++)
-                    Container(
-                      width: 16,
-                      height: 16,
-                      margin: const EdgeInsets.symmetric(horizontal: 6),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: i < _entered.length
-                            ? scheme.primary
-                            : scheme.surfaceContainerHighest,
+      // Scrollable so the keypad (plus the fingerprint button when present)
+      // never overflows on short screens.
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Text(subtitle, textAlign: TextAlign.center),
+            const SizedBox(height: 16),
+            if (_bioAvailable) ...<Widget>[
+              FilledButton.tonalIcon(
+                onPressed: _onFingerprint,
+                icon: const Icon(Icons.fingerprint),
+                label: const Text('Use fingerprint'),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '— or enter the PIN —',
+                style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
+              ),
+              const SizedBox(height: 8),
+            ],
+            Row(
+                  key: ValueKey<int>(_shakeTick),
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: <Widget>[
+                    for (var i = 0; i < _pinLength; i++)
+                      Container(
+                        width: 16,
+                        height: 16,
+                        margin: const EdgeInsets.symmetric(horizontal: 6),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: i < _entered.length
+                              ? scheme.primary
+                              : scheme.surfaceContainerHighest,
+                        ),
                       ),
-                    ),
-                ],
-              )
-              .animate(target: _shakeTick > 0 ? 1 : 0)
-              .shake(hz: 6, duration: 400.ms),
-          SizedBox(
-            height: 24,
-            child: Center(
-              child: Text(
-                coolingDown
-                    ? 'Too many tries — wait ${lock.cooldownRemaining}s'
-                    : (_message ?? ''),
-                style: TextStyle(color: scheme.error, fontSize: 12),
+                  ],
+                )
+                .animate(target: _shakeTick > 0 ? 1 : 0)
+                .shake(hz: 6, duration: 400.ms),
+            SizedBox(
+              height: 24,
+              child: Center(
+                child: Text(
+                  coolingDown
+                      ? 'Too many tries — wait ${lock.cooldownRemaining}s'
+                      : (_message ?? ''),
+                  style: TextStyle(color: scheme.error, fontSize: 12),
+                ),
               ),
             ),
-          ),
-          for (final row in const <List<String>>[
-            <String>['1', '2', '3'],
-            <String>['4', '5', '6'],
-            <String>['7', '8', '9'],
-            <String>['', '0', '<'],
-          ])
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: <Widget>[
-                  for (final key in row)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 6),
-                      child: key.isEmpty
-                          ? const SizedBox(width: 60, height: 52)
-                          : SizedBox(
-                              width: 60,
-                              height: 52,
-                              child: key == '<'
-                                  ? IconButton(
-                                      onPressed: _onBackspace,
-                                      icon: const Icon(
-                                        Icons.backspace_outlined,
-                                      ),
-                                      tooltip: 'Delete',
-                                    )
-                                  : FilledButton.tonal(
-                                      onPressed: coolingDown
-                                          ? null
-                                          : () => _onDigit(key, lock),
-                                      style: FilledButton.styleFrom(
-                                        padding: EdgeInsets.zero,
-                                        textStyle: const TextStyle(
-                                          fontSize: 20,
+            for (final row in const <List<String>>[
+              <String>['1', '2', '3'],
+              <String>['4', '5', '6'],
+              <String>['7', '8', '9'],
+              <String>['', '0', '<'],
+            ])
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: <Widget>[
+                    for (final key in row)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 6),
+                        child: key.isEmpty
+                            ? const SizedBox(width: 60, height: 52)
+                            : SizedBox(
+                                width: 60,
+                                height: 52,
+                                child: key == '<'
+                                    ? IconButton(
+                                        onPressed: _onBackspace,
+                                        icon: const Icon(
+                                          Icons.backspace_outlined,
                                         ),
+                                        tooltip: 'Delete',
+                                      )
+                                    : FilledButton.tonal(
+                                        onPressed: coolingDown
+                                            ? null
+                                            : () => _onDigit(key, lock),
+                                        style: FilledButton.styleFrom(
+                                          padding: EdgeInsets.zero,
+                                          textStyle: const TextStyle(
+                                            fontSize: 20,
+                                          ),
+                                        ),
+                                        child: Text(key),
                                       ),
-                                      child: Text(key),
-                                    ),
-                            ),
-                    ),
-                ],
+                              ),
+                      ),
+                  ],
+                ),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
       actions: <Widget>[
         TextButton(

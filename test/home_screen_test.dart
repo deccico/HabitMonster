@@ -4,10 +4,26 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:habit_monster/models/monster_state.dart';
 import 'package:habit_monster/models/parent_lock_state.dart';
 import 'package:habit_monster/screens/home_screen.dart';
+import 'package:habit_monster/services/biometric_gate.dart';
 import 'package:habit_monster/services/update_checker.dart';
 import 'package:habit_monster/version.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+/// Test double for the fingerprint reader: availability and the outcome of
+/// an authentication attempt are both scripted per test.
+class FakeBiometrics extends BiometricGate {
+  FakeBiometrics({this.isAvailable = false, this.approves = false});
+
+  bool isAvailable;
+  bool approves;
+
+  @override
+  Future<bool> get available async => isAvailable;
+
+  @override
+  Future<bool> authenticate(String reason) async => approves;
+}
 
 /// Drives the real HomeScreen through the Idle -> Working -> Evolving -> Idle
 /// flow to confirm the guided loop is wired correctly.
@@ -45,6 +61,7 @@ void main() {
 
   late ParentLockState lockState;
   late UpdateChecker updateChecker;
+  late FakeBiometrics biometrics;
   String? deployedVersion; // what the fake version.json fetch reports
 
   Future<MonsterState> pumpApp(WidgetTester tester) async {
@@ -54,12 +71,14 @@ void main() {
     await lockState.load();
     deployedVersion = null;
     updateChecker = UpdateChecker(fetchVersion: () async => deployedVersion);
+    biometrics = FakeBiometrics();
     await tester.pumpWidget(
       MultiProvider(
         providers: [
           ChangeNotifierProvider<MonsterState>.value(value: state),
           ChangeNotifierProvider<ParentLockState>.value(value: lockState),
           ChangeNotifierProvider<UpdateChecker>.value(value: updateChecker),
+          Provider<BiometricGate>.value(value: biometrics),
         ],
         child: const MaterialApp(home: HomeScreen()),
       ),
@@ -322,6 +341,117 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 350));
     expect(find.text('Parent lock'), findsNothing);
+
+    await teardownTree(tester);
+  });
+
+  testWidgets('fingerprint approves the evolution at the parent gate', (
+    tester,
+  ) async {
+    final state = await pumpApp(tester);
+    await lockState.enable('1234');
+    biometrics
+      ..isAvailable = true
+      ..approves = true;
+    await tester.pump();
+
+    // Reach the gate: complete a task and press Ready.
+    await tester.tap(find.text('START'));
+    await tester.pump();
+    for (var i = 0; i < 10; i++) {
+      await tester.pump(const Duration(seconds: 1));
+    }
+    await tester.tap(find.text("I'M READY!"));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
+
+    // The dialog offers the fingerprint shortcut next to the PIN pad.
+    expect(find.text('Ask a grown-up! 🔒'), findsOneWidget);
+    expect(find.text('Use fingerprint'), findsOneWidget);
+    expect(find.widgetWithText(FilledButton, '5'), findsOneWidget); // pad too
+
+    await tester.tap(find.text('Use fingerprint'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
+
+    expect(state.currentStage, 2); // approved without a PIN
+    await tester.pump(const Duration(seconds: 3));
+    await teardownTree(tester);
+  });
+
+  testWidgets('a failed fingerprint keeps the dialog and the PIN works', (
+    tester,
+  ) async {
+    final state = await pumpApp(tester);
+    await lockState.enable('1234');
+    biometrics
+      ..isAvailable = true
+      ..approves = false;
+    await tester.pump();
+
+    await tester.tap(find.text('START'));
+    await tester.pump();
+    for (var i = 0; i < 10; i++) {
+      await tester.pump(const Duration(seconds: 1));
+    }
+    await tester.tap(find.text("I'M READY!"));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
+
+    // Rejected read: nothing happens, the dialog stays.
+    await tester.tap(find.text('Use fingerprint'));
+    await tester.pump();
+    expect(find.text('Ask a grown-up! 🔒'), findsOneWidget);
+    expect(state.currentStage, 1);
+
+    // The PIN pad still approves.
+    await enterPin(tester, '1234');
+    await tester.pump();
+    expect(state.currentStage, 2);
+
+    await tester.pump(const Duration(seconds: 3));
+    await teardownTree(tester);
+  });
+
+  testWidgets('fingerprint unlocks the parent lock from the header', (
+    tester,
+  ) async {
+    await pumpApp(tester);
+    await lockState.enable('1234');
+    biometrics
+      ..isAvailable = true
+      ..approves = true;
+    await tester.pump();
+
+    expect(find.byIcon(Icons.lock), findsOneWidget);
+    await tester.tap(find.byIcon(Icons.lock));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
+
+    await tester.tap(find.text('Use fingerprint'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
+
+    expect(lockState.enabled, isFalse);
+    expect(find.byIcon(Icons.lock_open_outlined), findsOneWidget);
+
+    await teardownTree(tester);
+  });
+
+  testWidgets('no fingerprint button without a biometric reader', (
+    tester,
+  ) async {
+    await pumpApp(tester);
+    await lockState.enable('1234');
+    // biometrics.isAvailable stays false (the default).
+    await tester.pump();
+
+    await tester.tap(find.byIcon(Icons.lock));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
+
+    expect(find.text('Ask a grown-up! 🔒'), findsOneWidget);
+    expect(find.text('Use fingerprint'), findsNothing);
 
     await teardownTree(tester);
   });

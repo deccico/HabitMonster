@@ -62,6 +62,21 @@ void main() {
     expect(prefs.getString('parentPinHash'), isNull);
   });
 
+  test(
+    'disableApproved (biometric path) skips the PIN but wipes the hash',
+    () async {
+      final lock = ParentLockState();
+      await lock.load();
+      await lock.enable('1234');
+
+      await lock.disableApproved();
+
+      expect(lock.enabled, isFalse);
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getString('parentPinHash'), isNull);
+    },
+  );
+
   test('an enabled flag without a stored PIN loads as disabled', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{
       'parentLockEnabled': true,

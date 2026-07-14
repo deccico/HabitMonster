@@ -1,5 +1,7 @@
 package com.darumatic.habit_monster
 
-import io.flutter.embedding.android.FlutterActivity
+import io.flutter.embedding.android.FlutterFragmentActivity
 
-class MainActivity : FlutterActivity()
+// FlutterFragmentActivity (not FlutterActivity) is required by local_auth's
+// biometric prompt.
+class MainActivity : FlutterFragmentActivity()

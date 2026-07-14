@@ -75,6 +75,13 @@ class ParentLockState extends ChangeNotifier {
   /// re-enabling always sets a fresh one.
   Future<bool> disable(String pin) async {
     if (!verify(pin)) return false;
+    await disableApproved();
+    return true;
+  }
+
+  /// Turn the lock off after an out-of-band parent approval (a successful
+  /// biometric read in the verify dialog). Skips PIN verification.
+  Future<void> disableApproved() async {
     _enabled = false;
     _hash = '';
     _salt = '';
@@ -83,7 +90,6 @@ class ParentLockState extends ChangeNotifier {
     await prefs.remove(_kPinHash);
     await prefs.remove(_kPinSalt);
     notifyListeners();
-    return true;
   }
 
   /// Check a PIN attempt. Tracks consecutive failures and enforces the

@@ -8,6 +8,7 @@ import 'models/monster_state.dart';
 import 'models/parent_lock_state.dart';
 import 'screens/splash_screen.dart';
 import 'services/analytics.dart';
+import 'services/biometric_gate.dart';
 import 'services/update_checker.dart';
 
 Future<void> main() async {
@@ -40,6 +41,7 @@ Future<void> main() async {
         ChangeNotifierProvider<MonsterState>.value(value: monster),
         ChangeNotifierProvider<ParentLockState>.value(value: parentLock),
         ChangeNotifierProvider<UpdateChecker>.value(value: updateChecker),
+        Provider<BiometricGate>.value(value: BiometricGate()),
       ],
       child: const TaskMonsterApp(),
     ),

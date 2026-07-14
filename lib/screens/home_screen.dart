@@ -638,7 +638,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     } else {
       final pin = await showPinVerifyDialog(context);
       if (!mounted || pin == null) return;
-      await lock.disable(pin);
+      // Empty string = the dialog approved via fingerprint, no PIN to check.
+      if (pin.isEmpty) {
+        await lock.disableApproved();
+      } else {
+        await lock.disable(pin);
+      }
       analytics.logEvent('parent_lock_disabled', const <String, Object>{});
     }
   }
