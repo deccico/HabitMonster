@@ -356,6 +356,7 @@ void main() {
       findsOneWidget,
     );
     expect(find.widgetWithText(ListTile, 'Support'), findsOneWidget);
+    expect(find.widgetWithText(ListTile, 'Buy me a coffee'), findsOneWidget);
     expect(find.widgetWithText(ListTile, 'Credits'), findsOneWidget);
 
     // About: the kid-friendly pitch plus the app version.
@@ -380,11 +381,24 @@ void main() {
     expect(find.text('Email address copied!'), findsOneWidget); // snackbar
     await tester.pump(const Duration(seconds: 5)); // let the snackbar expire
 
-    // Credits.
+    // Buy me a coffee: the pitch plus the branded link button. Tapping the
+    // button is a no-op off web (openExternalUrl stub), so it must not crash.
+    await openMenu();
+    await openEntry('Buy me a coffee');
+    expect(find.text('Keep Task Monster rolling ☕'), findsOneWidget);
+    await tester.tap(find.widgetWithText(FilledButton, 'Buy me a coffee'));
+    await tester.pump();
+    expect(find.text('Keep Task Monster rolling ☕'), findsOneWidget);
+    await closeDialog();
+
+    // Credits: author and technology partner.
     await openMenu();
     await openEntry('Credits');
     expect(find.text('CREATED BY'), findsOneWidget);
     expect(find.text('Adrian Deccico'), findsOneWidget);
+    expect(find.text('TECHNOLOGY PARTNER'), findsOneWidget);
+    expect(find.text('Darumatic'), findsOneWidget);
+    expect(find.text('darumatic.com'), findsOneWidget);
     await closeDialog();
 
     await teardownTree(tester);

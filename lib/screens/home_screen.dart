@@ -14,6 +14,8 @@ import '../models/monster_state.dart';
 import '../models/parent_lock_state.dart';
 import '../models/profile.dart';
 import '../services/analytics.dart';
+import '../services/open_url_stub.dart'
+    if (dart.library.js_interop) '../services/open_url_web.dart';
 import '../services/parent_gate.dart';
 import '../services/update_checker.dart';
 import '../version.dart';
@@ -351,9 +353,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   static const String _supportEmail = 'hello@darumatic.com';
+  static const String _buyMeACoffeeUrl = 'https://buymeacoffee.com/darumatic';
+  static const String _darumaticUrl = 'https://darumatic.com';
 
   /// The little info menu behind the header's kebab button: About, Support,
-  /// and Credits.
+  /// Buy me a coffee, and Credits.
   Future<void> _openInfoMenu() async {
     await showModalBottomSheet<void>(
       context: context,
@@ -372,41 +376,55 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         );
 
         return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              ListTile(
-                leading: leadingIcon(Icons.info_outline_rounded),
-                title: const Text('About Task Monster'),
-                subtitle: const Text('What this app is all about'),
-                trailing: const Icon(Icons.chevron_right_rounded),
-                onTap: () {
-                  Navigator.pop(sheetContext);
-                  _showAboutDialog();
-                },
-              ),
-              ListTile(
-                leading: leadingIcon(Icons.mail_outline_rounded),
-                title: const Text('Support'),
-                subtitle: const Text(_supportEmail),
-                trailing: const Icon(Icons.chevron_right_rounded),
-                onTap: () {
-                  Navigator.pop(sheetContext);
-                  _showSupportDialog();
-                },
-              ),
-              ListTile(
-                leading: leadingIcon(Icons.favorite_outline_rounded),
-                title: const Text('Credits'),
-                subtitle: const Text('Who made this'),
-                trailing: const Icon(Icons.chevron_right_rounded),
-                onTap: () {
-                  Navigator.pop(sheetContext);
-                  _showCreditsDialog();
-                },
-              ),
-              const SizedBox(height: 8),
-            ],
+          // Scrollable so the rows never overflow the sheet's height budget
+          // on short screens.
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                ListTile(
+                  leading: leadingIcon(Icons.info_outline_rounded),
+                  title: const Text('About Task Monster'),
+                  subtitle: const Text('What this app is all about'),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () {
+                    Navigator.pop(sheetContext);
+                    _showAboutDialog();
+                  },
+                ),
+                ListTile(
+                  leading: leadingIcon(Icons.mail_outline_rounded),
+                  title: const Text('Support'),
+                  subtitle: const Text(_supportEmail),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () {
+                    Navigator.pop(sheetContext);
+                    _showSupportDialog();
+                  },
+                ),
+                ListTile(
+                  leading: leadingIcon(Icons.local_cafe_outlined),
+                  title: const Text('Buy me a coffee'),
+                  subtitle: const Text('Shout the dev a coffee'),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () {
+                    Navigator.pop(sheetContext);
+                    _showCoffeeDialog();
+                  },
+                ),
+                ListTile(
+                  leading: leadingIcon(Icons.favorite_outline_rounded),
+                  title: const Text('Credits'),
+                  subtitle: const Text('Who made this'),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () {
+                    Navigator.pop(sheetContext);
+                    _showCreditsDialog();
+                  },
+                ),
+                const SizedBox(height: 8),
+              ],
+            ),
           ),
         );
       },
@@ -459,9 +477,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         actions: <Widget>[
           TextButton(
             onPressed: () async {
-              await Clipboard.setData(
-                const ClipboardData(text: _supportEmail),
-              );
+              await Clipboard.setData(const ClipboardData(text: _supportEmail));
               if (!dialogContext.mounted) return;
               ScaffoldMessenger.of(dialogContext).showSnackBar(
                 const SnackBar(content: Text('Email address copied!')),
@@ -479,30 +495,123 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
+  Future<void> _showCoffeeDialog() async {
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Keep Task Monster rolling ☕'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            const Text(
+              'Task Monster is free and ad-free. If it helps your family '
+              'get things done, you can shout the dev a coffee!',
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                style: FilledButton.styleFrom(
+                  // Official Buy Me a Coffee brand colours.
+                  backgroundColor: const Color(0xFFFFDD00),
+                  foregroundColor: const Color(0xFF0D0C22),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: const StadiumBorder(),
+                ),
+                icon: const Icon(Icons.local_cafe, size: 20),
+                label: const Text(
+                  'Buy me a coffee',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                ),
+                onPressed: () => openExternalUrl(_buyMeACoffeeUrl),
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'Donations keep the servers running — the app stays free '
+              'for everyone.',
+              textAlign: TextAlign.center,
+              style: Theme.of(dialogContext).textTheme.bodySmall,
+            ),
+          ],
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _showCreditsDialog() async {
     await showDialog<void>(
       context: context,
       builder: (dialogContext) {
         final scheme = Theme.of(dialogContext).colorScheme;
+
+        TextStyle kickerStyle() => TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 1.5,
+          color: scheme.onSurfaceVariant,
+        );
+
         return AlertDialog(
           title: const Text('Credits'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              Text(
-                'CREATED BY',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1.5,
-                  color: scheme.onSurfaceVariant,
-                ),
-              ),
+              Text('CREATED BY', style: kickerStyle()),
               const SizedBox(height: 4),
               const Text(
                 'Adrian Deccico',
                 style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 16),
+              Text('TECHNOLOGY PARTNER', style: kickerStyle()),
+              const SizedBox(height: 4),
+              Row(
+                children: <Widget>[
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        const Text(
+                          'Darumatic',
+                          style: TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        GestureDetector(
+                          onTap: () => openExternalUrl(_darumaticUrl),
+                          child: Text(
+                            'darumatic.com',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: scheme.primary,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  ClipOval(
+                    child: Image.asset(
+                      'assets/images/darumatic-logo.png',
+                      width: 44,
+                      height: 44,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
