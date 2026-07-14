@@ -13,13 +13,13 @@ The application is a standalone, client-side mobile and web productivity tool. I
 * **As a user**, I want to see a dramatic animation and hear a sound effect when the monster evolves so that the reward feels satisfying and triggers dopamine.
 * **As a user**, I want the button to be disabled for exactly 1 minute after pressing it so that I cannot spam the button and cheat the reward system.
 * **As a user**, I want my monster's evolution stage to be saved automatically, so I don't lose progress if I close the app.
-* **As a user**, I want the app to reset or offer a prestige option once I hit the final stage (Stage 50), so I can start the cycle over.
+* **As a user**, I want the app to reset or offer a prestige option once I hit the final stage (Stage 15), so I can start the cycle over.
 
 ### 1.3 Core Features & Mechanics
 
-* **Evolution Stages:** 50 distinct stages of the monster.
+* **Evolution Stages:** 15 distinct stages forming a single coherent creature line (a dragon), from egg to an epic cosmic dragon.
 * **Cooldown Lockout:** A strict 60-second timer. The UI must clearly indicate how much time is left before the button becomes active again (e.g., a countdown text or a grayed-out button).
-* **Persistent State:** The app must remember the current evolution stage (1–50) and the exact timestamp of the last button press.
+* **Persistent State:** The app must remember the current evolution stage (1–15) and the exact timestamp of the last button press.
 * **Visual/Audio Feedback:** A flash, shake, or particle effect upon pressing the button, accompanied by a satisfying sound effect.
 * **Parental Lock (optional, default off):** A grown-up gate on the evolution approval. When enabled (toggle in the users sheet), pressing "I'M READY!" opens a kid-friendly "Ask a grown-up!" dialog and the evolution only proceeds after the correct 4-digit parent PIN. The PIN is stored as a salted SHA-256 hash in local storage; five wrong tries lock the keypad for 30 seconds. This is friction against self-certified rewards, not security — clearing site data clears the lock. Biometric approval (fingerprint via `local_auth`) is a planned enhancement for the mobile builds; the check is isolated in `ParentGate` so it can slot in without touching the flow.
 
@@ -46,14 +46,14 @@ The application is a standalone, client-side mobile and web productivity tool. I
 
 You will need a lightweight state management solution (like `Provider` or Flutter's built-in `ValueNotifier`) to track two main variables:
 
-1. `currentStage` (Integer: 1 to 50).
+1. `currentStage` (Integer: 1 to 15).
 2. `lastEvolutionTime` (DateTime: The exact moment the button was last pressed).
 
 ### 2.3 Core Logic & Algorithms
 
 * **Evolution Logic:**
 * On button press -> Increment `currentStage` by 1.
-* If `currentStage` == 50 -> Trigger final animation. Next press resets `currentStage` to 1.
+* If `currentStage` == 15 -> Trigger final animation. Next press resets `currentStage` to 1.
 
 
 * **Timer Logic (Crucial for Mobile):** * *Do not rely solely on a running background timer*, as mobile operating systems suspend apps in the background.
@@ -64,7 +64,7 @@ You will need a lightweight state management solution (like `Provider` or Flutte
 
 ### 2.4 Asset Management
 
-* **Images:** Monster stages are rendered as emoji (50 distinct emoji in `lib/data/stages.dart`) rather than bundled image files; `assets/images/` holds only branding (the app-bar logo).
+* **Images:** Monster stages are rendered as emoji (15 distinct emoji forming one dragon line in `lib/data/stages.dart`) rather than bundled image files; `assets/images/` holds only branding (the app-bar logo).
 * **Audio:** 1 short `.mp3` or `.wav` file stored in the `assets/audio/` directory.
 
 ### 2.5 Required Flutter Packages (Dependencies)

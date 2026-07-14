@@ -1,123 +1,56 @@
-/// Static data for the 50 monster evolution stages.
+/// Static data for the 15 monster evolution stages.
 ///
 /// Per the user's decision, monsters are represented by emoji rather than
-/// bundled image files. Each stage has a distinct emoji so the evolution
-/// reads as visual progress, plus a short flavour name shown in the UI.
+/// bundled image files. The stages form a single, coherent creature line — a
+/// dragon — so pressing "Evolve" reads as the *same* creature growing up rather
+/// than swapping to an unrelated icon.
+///
+/// The arc: egg -> hatchling -> reptilian juvenile forms -> true winged dragon
+/// -> an epic elemental/cosmic dragon at the summit (cute -> epic). Emoji only
+/// ships two literal dragon glyphs (🐲 young, 🐉 adult), so the final six
+/// "epic" stages show the same dragon mastering an element — the flavour names
+/// keep the creature's identity ("… Dragon" / "… Wyrm").
 library;
 
 /// Total number of evolution stages.
-const int kMaxStage = 50;
+const int kMaxStage = 15;
 
 /// Emoji shown for each stage. Index `i` corresponds to stage `i + 1`.
-///
-/// The arc goes egg -> hatchling -> beast -> dragon -> undead -> giant ->
-/// mythic -> elemental -> cosmic so that pressing "Evolve" feels like
-/// meaningful progression toward stage 50.
 const List<String> stageEmojis = <String>[
   '🥚', // 1  - egg
-  '🐣', // 2  - hatching
-  '🐤', // 3  - chick
-  '🐛', // 4  - larva
-  '🐌', // 5  - crawler
-  '🦗', // 6  - hopper
-  '🦎', // 7  - reptile
-  '🐍', // 8  - serpent
-  '🐢', // 9  - shelled
-  '🦂', // 10 - stinger
-  '🦀', // 11 - clawed
-  '🐙', // 12 - tentacled
-  '🦈', // 13 - predator
-  '🐊', // 14 - crocodilian
-  '🦖', // 15 - raptor
-  '🦕', // 16 - titan
-  '🐉', // 17 - young dragon
-  '🐲', // 18 - dragon lord
-  '👹', // 19 - demon form
-  '🔥', // 20 - apex monster
-  '👺', // 21 - goblin king
-  '💀', // 22 - bone fiend
-  '👻', // 23 - phantom
-  '🧟', // 24 - revenant
-  '🧛', // 25 - vampire lord
-  '🦇', // 26 - night terror
-  '🐺', // 27 - dire wolf
-  '🕷️', // 28 - widow fiend
-  '🦑', // 29 - kraken spawn
-  '🐋', // 30 - leviathan
-  '🦏', // 31 - juggernaut
-  '🦛', // 32 - behemoth
-  '🐘', // 33 - colossus
-  '🦣', // 34 - tusked titan
-  '🦬', // 35 - thunder beast
-  '🦍', // 36 - ape king
-  '🗿', // 37 - stone golem
-  '🦄', // 38 - mythic steed
-  '❄️', // 39 - frost wraith
-  '⚡', // 40 - storm spirit
-  '🌪️', // 41 - tempest fiend
-  '🌋', // 42 - magma titan
-  '🌊', // 43 - abyss caller
-  '👽', // 44 - star being
-  '👾', // 45 - void invader
-  '☄️', // 46 - comet crusher
-  '🪐', // 47 - world eater
-  '💫', // 48 - star devourer
-  '🌟', // 49 - celestial one
-  '🌌', // 50 - cosmic overlord / final
+  '🐣', // 2  - hatchling emerging
+  '🦎', // 3  - tiny dragonling
+  '🐍', // 4  - serpentling
+  '🐊', // 5  - snapjaw saurian
+  '🦕', // 6  - long-necked juvenile
+  '🦖', // 7  - fanged ravager
+  '🐲', // 8  - young dragon (horns & wings emerge)
+  '🐉', // 9  - full winged dragon
+  '🔥', // 10 - inferno dragon (breath awakens)
+  '⚡', // 11 - storm dragon
+  '🌋', // 12 - volcanic wyrm
+  '🌊', // 13 - leviathan wyrm
+  '☄️', // 14 - astral dragon
+  '🌌', // 15 - cosmic dragon / final
 ];
 
 /// Short flavour name for each stage (index `i` == stage `i + 1`).
 const List<String> stageNames = <String>[
-  'Egg',
+  'Mystery Egg',
   'Hatchling',
-  'Chick',
-  'Larva',
-  'Crawler',
-  'Hopper',
-  'Reptile',
-  'Serpent',
-  'Shelled One',
-  'Stinger',
-  'Clawed One',
-  'Tentacled',
-  'Predator',
-  'Crocodilian',
-  'Raptor',
-  'Titan',
+  'Dragonling',
+  'Serpentling',
+  'Snapjaw',
+  'Juvenile Wyrm',
+  'Fanged Ravager',
   'Young Dragon',
-  'Dragon Lord',
-  'Demon Form',
-  'Apex Monster',
-  'Goblin King',
-  'Bone Fiend',
-  'Phantom',
-  'Revenant',
-  'Vampire Lord',
-  'Night Terror',
-  'Dire Wolf',
-  'Widow Fiend',
-  'Kraken Spawn',
-  'Leviathan',
-  'Juggernaut',
-  'Behemoth',
-  'Colossus',
-  'Tusked Titan',
-  'Thunder Beast',
-  'Ape King',
-  'Stone Golem',
-  'Mythic Steed',
-  'Frost Wraith',
-  'Storm Spirit',
-  'Tempest Fiend',
-  'Magma Titan',
-  'Abyss Caller',
-  'Star Being',
-  'Void Invader',
-  'Comet Crusher',
-  'World Eater',
-  'Star Devourer',
-  'Celestial One',
-  'Cosmic Overlord',
+  'Winged Dragon',
+  'Inferno Dragon',
+  'Storm Dragon',
+  'Volcanic Wyrm',
+  'Leviathan Wyrm',
+  'Astral Dragon',
+  'Cosmic Dragon',
 ];
 
 /// Emoji for a 1-based [stage] value (clamped to the valid range).
