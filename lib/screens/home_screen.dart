@@ -350,6 +350,173 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
+  static const String _supportEmail = 'hello@darumatic.com';
+
+  /// The little info menu behind the header's kebab button: About, Support,
+  /// and Credits.
+  Future<void> _openInfoMenu() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) {
+        final scheme = Theme.of(sheetContext).colorScheme;
+
+        Widget leadingIcon(IconData icon) => Container(
+          width: 38,
+          height: 38,
+          decoration: BoxDecoration(
+            color: scheme.primary.withValues(alpha: 0.14),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icon, size: 20, color: scheme.primary),
+        );
+
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              ListTile(
+                leading: leadingIcon(Icons.info_outline_rounded),
+                title: const Text('About Task Monster'),
+                subtitle: const Text('What this app is all about'),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  _showAboutDialog();
+                },
+              ),
+              ListTile(
+                leading: leadingIcon(Icons.mail_outline_rounded),
+                title: const Text('Support'),
+                subtitle: const Text(_supportEmail),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  _showSupportDialog();
+                },
+              ),
+              ListTile(
+                leading: leadingIcon(Icons.favorite_outline_rounded),
+                title: const Text('Credits'),
+                subtitle: const Text('Who made this'),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  _showCreditsDialog();
+                },
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _showAboutDialog() async {
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('About Task Monster 🐾'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            const Text(
+              'Task Monster turns everyday tasks into an adventure! '
+              'Eating dinner, brushing teeth, studying, tidying up — every '
+              'task a kid completes feeds their monster and helps it grow '
+              'into something amazing.\n\n'
+              'Little wins, big monsters! 🎉',
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Version v$kAppVersion',
+              style: Theme.of(dialogContext).textTheme.labelSmall,
+            ),
+          ],
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showSupportDialog() async {
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Support'),
+        content: const Text(
+          'Questions, ideas, or something not working? '
+          "We'd love to hear from you:\n\n"
+          '$_supportEmail',
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () async {
+              await Clipboard.setData(
+                const ClipboardData(text: _supportEmail),
+              );
+              if (!dialogContext.mounted) return;
+              ScaffoldMessenger.of(dialogContext).showSnackBar(
+                const SnackBar(content: Text('Email address copied!')),
+              );
+              Navigator.pop(dialogContext);
+            },
+            child: const Text('Copy email'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showCreditsDialog() async {
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        final scheme = Theme.of(dialogContext).colorScheme;
+        return AlertDialog(
+          title: const Text('Credits'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text(
+                'CREATED BY',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.5,
+                  color: scheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Adrian Deccico',
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
+              ),
+            ],
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Close'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   /// Enable (choose a PIN) or disable (verify the PIN) the parental lock.
   Future<void> _toggleParentLock(bool on) async {
     final lock = context.read<ParentLockState>();
@@ -495,20 +662,25 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             visualDensity: VisualDensity.compact,
             onPressed: _confirmReset,
           ),
+          Consumer<ParentLockState>(
+            builder: (context, lock, _) => IconButton(
+              icon: Icon(lock.enabled ? Icons.lock : Icons.lock_open_outlined),
+              color: scheme.primary,
+              tooltip: lock.enabled
+                  ? 'Parent lock is on'
+                  : 'Set up parent lock',
+              visualDensity: VisualDensity.compact,
+              onPressed: () => _toggleParentLock(!lock.enabled),
+            ),
+          ),
           Padding(
             padding: const EdgeInsets.only(right: 4),
-            child: Consumer<ParentLockState>(
-              builder: (context, lock, _) => IconButton(
-                icon: Icon(
-                  lock.enabled ? Icons.lock : Icons.lock_open_outlined,
-                ),
-                color: scheme.primary,
-                tooltip: lock.enabled
-                    ? 'Parent lock is on'
-                    : 'Set up parent lock',
-                visualDensity: VisualDensity.compact,
-                onPressed: () => _toggleParentLock(!lock.enabled),
-              ),
+            child: IconButton(
+              icon: const Icon(Icons.more_vert),
+              color: scheme.primary,
+              tooltip: 'Menu',
+              visualDensity: VisualDensity.compact,
+              onPressed: _openInfoMenu,
             ),
           ),
         ],

@@ -32,6 +32,13 @@ void main() {
     (call) async => null,
   );
 
+  // Clipboard (SystemChannels.platform) has no host in tests either; without
+  // a stub, Clipboard.setData never completes.
+  messenger.setMockMethodCallHandler(
+    SystemChannels.platform,
+    (call) async => null,
+  );
+
   setUp(() {
     SharedPreferences.setMockInitialValues(<String, Object>{});
   });
@@ -315,6 +322,70 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 350));
     expect(find.text('Parent lock'), findsNothing);
+
+    await teardownTree(tester);
+  });
+
+  testWidgets('info menu opens About, Support, and Credits dialogs', (
+    tester,
+  ) async {
+    await pumpApp(tester);
+
+    Future<void> openMenu() async {
+      await tester.tap(find.byIcon(Icons.more_vert));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 350));
+    }
+
+    Future<void> openEntry(String title) async {
+      await tester.tap(find.widgetWithText(ListTile, title));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 350));
+    }
+
+    Future<void> closeDialog() async {
+      await tester.tap(find.widgetWithText(TextButton, 'Close'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 350));
+    }
+
+    // The kebab button opens a sheet listing the three entries.
+    await openMenu();
+    expect(
+      find.widgetWithText(ListTile, 'About Task Monster'),
+      findsOneWidget,
+    );
+    expect(find.widgetWithText(ListTile, 'Support'), findsOneWidget);
+    expect(find.widgetWithText(ListTile, 'Credits'), findsOneWidget);
+
+    // About: the kid-friendly pitch plus the app version.
+    await openEntry('About Task Monster');
+    expect(find.text('About Task Monster 🐾'), findsOneWidget);
+    expect(
+      find.textContaining('turns everyday tasks into an adventure'),
+      findsOneWidget,
+    );
+    expect(find.text('Version v$kAppVersion'), findsOneWidget);
+    await closeDialog();
+
+    // Support: shows the contact email and copies it to the clipboard.
+    await openMenu();
+    await openEntry('Support');
+    expect(find.textContaining('hello@darumatic.com'), findsOneWidget);
+    await tester.tap(find.widgetWithText(TextButton, 'Copy email'));
+    // Extra pumps: the async clipboard write resolves, then the snackbar
+    // animates in.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
+    expect(find.text('Email address copied!'), findsOneWidget); // snackbar
+    await tester.pump(const Duration(seconds: 5)); // let the snackbar expire
+
+    // Credits.
+    await openMenu();
+    await openEntry('Credits');
+    expect(find.text('CREATED BY'), findsOneWidget);
+    expect(find.text('Adrian Deccico'), findsOneWidget);
+    await closeDialog();
 
     await teardownTree(tester);
   });
