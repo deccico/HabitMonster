@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -17,13 +18,24 @@ import 'profile.dart';
 ///  * `activeProfileId` — id of the profile currently in play.
 ///  * `stage_<id>`      — that profile's current stage.
 ///  * `prestige_<id>`   — that profile's prestige count.
+///  * `line_<id>`       — index into [kEvolutionLines] for that profile's
+///                        current creature line.
+///
+/// Every return to the egg (new profile, prestige wrap, manual reset) rolls a
+/// new random evolution line — never the one just played — so which creature
+/// is inside the egg stays a surprise.
 ///
 /// Timing of when an evolution is allowed is driven by the UI phase machine
 /// (start task -> wait -> ready), so this model has no cooldown logic of its
 /// own.
 class MonsterState extends ChangeNotifier {
+  /// [random] is injectable for deterministic tests.
+  MonsterState({Random? random}) : _random = random ?? Random();
+
   static const String _kProfiles = 'profiles';
   static const String _kActiveId = 'activeProfileId';
+
+  final Random _random;
 
   // Legacy single-monster keys, migrated into the first profile on first load.
   static const String _kLegacyStage = 'currentStage';
@@ -34,6 +46,7 @@ class MonsterState extends ChangeNotifier {
 
   int _currentStage = 1;
   int _prestigeCount = 0;
+  int _lineIndex = 0;
 
   /// Re-entrancy guard so a single evolution can't advance two stages.
   bool _isEvolving = false;
@@ -45,6 +58,9 @@ class MonsterState extends ChangeNotifier {
   int get currentStage => _currentStage;
   int get prestigeCount => _prestigeCount;
   bool get lastWasPrestige => _lastWasPrestige;
+
+  /// Index into [kEvolutionLines] of the active profile's current line.
+  int get lineIndex => _lineIndex;
 
   /// True when the monster is at the final stage.
   bool get isFinalStage => _currentStage >= kMaxStage;
@@ -58,6 +74,19 @@ class MonsterState extends ChangeNotifier {
 
   String _stageKey(String id) => 'stage_$id';
   String _prestigeKey(String id) => 'prestige_$id';
+  String _lineKey(String id) => 'line_$id';
+
+  /// Pick a random line index, never returning [avoid] (so a fresh egg is
+  /// always a different creature than the one just completed).
+  int _rollLine({int? avoid}) {
+    final count = kEvolutionLines.length;
+    if (count <= 1) return 0;
+    int pick;
+    do {
+      pick = _random.nextInt(count);
+    } while (pick == avoid);
+    return pick;
+  }
 
   String _newId() => DateTime.now().microsecondsSinceEpoch.toString();
 
@@ -81,7 +110,10 @@ class MonsterState extends ChangeNotifier {
       // profile, carrying over any legacy progress so nothing is lost.
       final id = _newId();
       _profiles.add(Profile(id: id, name: 'Player 1', animal: defaultAnimal));
-      final legacyStage = (prefs.getInt(_kLegacyStage) ?? 1).clamp(1, kMaxStage);
+      final legacyStage = (prefs.getInt(_kLegacyStage) ?? 1).clamp(
+        1,
+        kMaxStage,
+      );
       final legacyPrestige = prefs.getInt(_kLegacyPrestige) ?? 0;
       _activeId = id;
       await prefs.setInt(_stageKey(id), legacyStage);
@@ -106,6 +138,15 @@ class MonsterState extends ChangeNotifier {
       kMaxStage,
     );
     _prestigeCount = prefs.getInt(_prestigeKey(_activeId)) ?? 0;
+    // Profiles created before evolution lines existed (or brand-new ones)
+    // have no stored line yet: roll one now and persist it.
+    final storedLine = prefs.getInt(_lineKey(_activeId));
+    if (storedLine == null) {
+      _lineIndex = _rollLine();
+      await prefs.setInt(_lineKey(_activeId), _lineIndex);
+    } else {
+      _lineIndex = storedLine.clamp(0, kEvolutionLines.length - 1);
+    }
     _lastWasPrestige = false;
   }
 
@@ -122,6 +163,8 @@ class MonsterState extends ChangeNotifier {
         _currentStage = 1;
         _prestigeCount += 1;
         _lastWasPrestige = true;
+        // A fresh egg hatches a new surprise: a different creature line.
+        _lineIndex = _rollLine(avoid: _lineIndex);
       } else {
         _currentStage += 1;
         _lastWasPrestige = false;
@@ -143,6 +186,8 @@ class MonsterState extends ChangeNotifier {
     _currentStage = 1;
     _lastWasPrestige = false;
     if (!keepPrestige) _prestigeCount = 0;
+    // A reset is a new egg too — roll a different line.
+    _lineIndex = _rollLine(avoid: _lineIndex);
     notifyListeners();
     await _persist();
   }
@@ -188,6 +233,7 @@ class MonsterState extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_stageKey(id));
     await prefs.remove(_prestigeKey(id));
+    await prefs.remove(_lineKey(id));
     await _persistProfiles();
 
     if (_activeId == id) {
@@ -203,6 +249,7 @@ class MonsterState extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_stageKey(_activeId), _currentStage);
     await prefs.setInt(_prestigeKey(_activeId), _prestigeCount);
+    await prefs.setInt(_lineKey(_activeId), _lineIndex);
   }
 
   Future<void> _persistProfiles() async {

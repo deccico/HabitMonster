@@ -59,10 +59,7 @@ class _SplashScreenState extends State<SplashScreen> {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: <Color>[
-              scheme.primaryContainer,
-              scheme.surface,
-            ],
+            colors: <Color>[scheme.primaryContainer, scheme.surface],
           ),
         ),
         child: Center(
@@ -94,7 +91,11 @@ class _SplashScreenState extends State<SplashScreen> {
                   )
                   .animate()
                   .fadeIn(duration: 600.ms)
-                  .shimmer(delay: 400.ms, duration: 1400.ms, color: Colors.amber),
+                  .shimmer(
+                    delay: 400.ms,
+                    duration: 1400.ms,
+                    color: Colors.amber,
+                  ),
               const SizedBox(height: 8),
               Text(
                 'Evolve by doing.',

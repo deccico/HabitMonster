@@ -807,7 +807,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     children: <Widget>[
                       const Spacer(),
                       MonsterDisplay(
-                        emoji: emojiForStage(monster.currentStage),
+                        emoji: emojiForStage(
+                          monster.currentStage,
+                          monster.lineIndex,
+                        ),
                         triggerCount: _triggerCount,
                         isFinal: monster.lastWasPrestige,
                       ),
@@ -815,6 +818,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       StageTracker(
                         stage: monster.currentStage,
                         prestigeCount: monster.prestigeCount,
+                        lineIndex: monster.lineIndex,
                       ),
                       const Spacer(),
                       _buildPhaseArea(context),

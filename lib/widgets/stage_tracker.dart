@@ -10,10 +10,14 @@ class StageTracker extends StatelessWidget {
     super.key,
     required this.stage,
     required this.prestigeCount,
+    required this.lineIndex,
   });
 
   final int stage;
   final int prestigeCount;
+
+  /// Which evolution line the flavour name is read from.
+  final int lineIndex;
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +26,7 @@ class StageTracker extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
         Text(
-          nameForStage(stage),
+          nameForStage(stage, lineIndex),
           style: theme.textTheme.titleLarge?.copyWith(
             fontWeight: FontWeight.bold,
           ),

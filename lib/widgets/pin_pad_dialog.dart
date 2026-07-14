@@ -150,23 +150,25 @@ class _PinPadDialogState extends State<_PinPadDialog> {
           Text(subtitle, textAlign: TextAlign.center),
           const SizedBox(height: 16),
           Row(
-            key: ValueKey<int>(_shakeTick),
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget>[
-              for (var i = 0; i < _pinLength; i++)
-                Container(
-                  width: 16,
-                  height: 16,
-                  margin: const EdgeInsets.symmetric(horizontal: 6),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: i < _entered.length
-                        ? scheme.primary
-                        : scheme.surfaceContainerHighest,
-                  ),
-                ),
-            ],
-          ).animate(target: _shakeTick > 0 ? 1 : 0).shake(hz: 6, duration: 400.ms),
+                key: ValueKey<int>(_shakeTick),
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  for (var i = 0; i < _pinLength; i++)
+                    Container(
+                      width: 16,
+                      height: 16,
+                      margin: const EdgeInsets.symmetric(horizontal: 6),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: i < _entered.length
+                            ? scheme.primary
+                            : scheme.surfaceContainerHighest,
+                      ),
+                    ),
+                ],
+              )
+              .animate(target: _shakeTick > 0 ? 1 : 0)
+              .shake(hz: 6, duration: 400.ms),
           SizedBox(
             height: 24,
             child: Center(
@@ -200,7 +202,9 @@ class _PinPadDialogState extends State<_PinPadDialog> {
                               child: key == '<'
                                   ? IconButton(
                                       onPressed: _onBackspace,
-                                      icon: const Icon(Icons.backspace_outlined),
+                                      icon: const Icon(
+                                        Icons.backspace_outlined,
+                                      ),
                                       tooltip: 'Delete',
                                     )
                                   : FilledButton.tonal(
@@ -209,7 +213,9 @@ class _PinPadDialogState extends State<_PinPadDialog> {
                                           : () => _onDigit(key, lock),
                                       style: FilledButton.styleFrom(
                                         padding: EdgeInsets.zero,
-                                        textStyle: const TextStyle(fontSize: 20),
+                                        textStyle: const TextStyle(
+                                          fontSize: 20,
+                                        ),
                                       ),
                                       child: Text(key),
                                     ),

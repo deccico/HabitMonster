@@ -5,11 +5,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 /// speech bubble. The [emoji] and [message] are supplied by the screen so the
 /// mascot can react to each phase (idle / working / evolving).
 class CheerCharacter extends StatelessWidget {
-  const CheerCharacter({
-    super.key,
-    required this.emoji,
-    required this.message,
-  });
+  const CheerCharacter({super.key, required this.emoji, required this.message});
 
   final String emoji;
   final String message;

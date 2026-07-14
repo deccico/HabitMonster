@@ -71,16 +71,21 @@ void main() {
     expect(lock.enabled, isFalse);
   });
 
-  test('five wrong tries trigger the cooldown, blocking even the right PIN',
-      () async {
-    final lock = ParentLockState();
-    await lock.load();
-    await lock.enable('1234');
+  test(
+    'five wrong tries trigger the cooldown, blocking even the right PIN',
+    () async {
+      final lock = ParentLockState();
+      await lock.load();
+      await lock.enable('1234');
 
-    for (var i = 0; i < ParentLockState.maxAttempts; i++) {
-      expect(lock.verify('0000'), isFalse);
-    }
-    expect(lock.cooldownRemaining, greaterThan(0));
-    expect(lock.verify('1234'), isFalse); // correct PIN blocked during cooldown
-  });
+      for (var i = 0; i < ParentLockState.maxAttempts; i++) {
+        expect(lock.verify('0000'), isFalse);
+      }
+      expect(lock.cooldownRemaining, greaterThan(0));
+      expect(
+        lock.verify('1234'),
+        isFalse,
+      ); // correct PIN blocked during cooldown
+    },
+  );
 }

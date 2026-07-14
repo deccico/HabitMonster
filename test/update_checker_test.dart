@@ -3,11 +3,14 @@ import 'package:habit_monster/services/update_checker.dart';
 import 'package:habit_monster/version.dart';
 
 void main() {
-  test('no update when the deployed version matches the compiled one', () async {
-    final checker = UpdateChecker(fetchVersion: () async => kAppVersion);
-    await checker.check();
-    expect(checker.updateAvailable, isFalse);
-  });
+  test(
+    'no update when the deployed version matches the compiled one',
+    () async {
+      final checker = UpdateChecker(fetchVersion: () async => kAppVersion);
+      await checker.check();
+      expect(checker.updateAvailable, isFalse);
+    },
+  );
 
   test('flags an update (and notifies) when versions differ', () async {
     final checker = UpdateChecker(fetchVersion: () async => '99.0.0');

@@ -351,10 +351,7 @@ void main() {
 
     // The kebab button opens a sheet listing the three entries.
     await openMenu();
-    expect(
-      find.widgetWithText(ListTile, 'About Task Monster'),
-      findsOneWidget,
-    );
+    expect(find.widgetWithText(ListTile, 'About Task Monster'), findsOneWidget);
     expect(find.widgetWithText(ListTile, 'Support'), findsOneWidget);
     expect(find.widgetWithText(ListTile, 'Buy me a coffee'), findsOneWidget);
     expect(find.widgetWithText(ListTile, 'Credits'), findsOneWidget);

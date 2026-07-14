@@ -1,8 +1,32 @@
+import 'dart:math';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:habit_monster/data/stages.dart';
 import 'package:habit_monster/models/monster_state.dart';
 import 'package:habit_monster/models/profile.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+/// A Random whose nextInt returns a fixed sequence (repeating the last value),
+/// making line rolls deterministic in tests.
+class _SequenceRandom implements Random {
+  _SequenceRandom(this._values);
+
+  final List<int> _values;
+  int _i = 0;
+
+  @override
+  int nextInt(int max) {
+    final v = _values[_i.clamp(0, _values.length - 1)];
+    _i++;
+    return v % max;
+  }
+
+  @override
+  bool nextBool() => false;
+
+  @override
+  double nextDouble() => 0;
+}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -48,6 +72,60 @@ void main() {
       expect(state.currentStage, 1);
       expect(state.prestigeCount, 1);
       expect(state.lastWasPrestige, isTrue);
+    });
+  });
+
+  group('evolution lines', () {
+    test('first load assigns a valid line and persists it', () async {
+      final state = MonsterState();
+      await state.load();
+
+      expect(state.lineIndex, inInclusiveRange(0, kEvolutionLines.length - 1));
+
+      // The rolled line survives a reload rather than re-rolling.
+      final second = MonsterState();
+      await second.load();
+      expect(second.lineIndex, state.lineIndex);
+    });
+
+    test('prestige wrap rolls a different line but keeps prestige', () async {
+      final state = MonsterState();
+      await state.load();
+      final before = state.lineIndex;
+
+      for (var i = 0; i < kMaxStage; i++) {
+        await state.evolve();
+      }
+
+      expect(state.currentStage, 1);
+      expect(state.prestigeCount, 1);
+      expect(state.lineIndex, isNot(before));
+      expect(state.lineIndex, inInclusiveRange(0, kEvolutionLines.length - 1));
+    });
+
+    test('reset rolls a different line', () async {
+      final state = MonsterState();
+      await state.load();
+      final before = state.lineIndex;
+
+      await state.reset(keepPrestige: true);
+
+      expect(state.lineIndex, isNot(before));
+    });
+
+    test('each profile keeps its own line', () async {
+      // Inject a fixed-sequence Random so the two profiles are guaranteed to
+      // land on different lines.
+      final state = MonsterState(random: _SequenceRandom(<int>[0, 2]));
+      await state.load();
+      final first = state.activeProfile.id;
+      expect(state.lineIndex, 0);
+
+      await state.addProfile('Sam', '🐼');
+      expect(state.lineIndex, 2);
+
+      await state.switchProfile(first);
+      expect(state.lineIndex, 0);
     });
   });
 
@@ -111,19 +189,22 @@ void main() {
       expect(state.prestigeCount, 0);
     });
 
-    test('migrates legacy single-monster progress into the first profile', () async {
-      SharedPreferences.setMockInitialValues(<String, Object>{
-        'currentStage': 3,
-        'prestigeCount': 1,
-      });
+    test(
+      'migrates legacy single-monster progress into the first profile',
+      () async {
+        SharedPreferences.setMockInitialValues(<String, Object>{
+          'currentStage': 3,
+          'prestigeCount': 1,
+        });
 
-      final state = MonsterState();
-      await state.load();
+        final state = MonsterState();
+        await state.load();
 
-      expect(state.profiles, hasLength(1));
-      expect(state.currentStage, 3);
-      expect(state.prestigeCount, 1);
-    });
+        expect(state.profiles, hasLength(1));
+        expect(state.currentStage, 3);
+        expect(state.prestigeCount, 1);
+      },
+    );
 
     test('each profile keeps independent progress', () async {
       final state = MonsterState();
@@ -175,28 +256,31 @@ void main() {
       expect(state.activeProfile.animal, '🦁');
     });
 
-    test('deleteProfile removes it and its progress, refusing the last one', () async {
-      final state = MonsterState();
-      await state.load();
-      final first = state.activeProfile.id;
-      final sam = await state.addProfile('Sam', '🐼');
-      await state.evolve(); // Sam -> stage 2
+    test(
+      'deleteProfile removes it and its progress, refusing the last one',
+      () async {
+        final state = MonsterState();
+        await state.load();
+        final first = state.activeProfile.id;
+        final sam = await state.addProfile('Sam', '🐼');
+        await state.evolve(); // Sam -> stage 2
 
-      // Delete the active (Sam) -> falls back to the first profile.
-      final deleted = await state.deleteProfile(sam.id);
-      expect(deleted, isTrue);
-      expect(state.profiles, hasLength(1));
-      expect(state.activeProfile.id, first);
+        // Delete the active (Sam) -> falls back to the first profile.
+        final deleted = await state.deleteProfile(sam.id);
+        expect(deleted, isTrue);
+        expect(state.profiles, hasLength(1));
+        expect(state.activeProfile.id, first);
 
-      // Sam's progress keys are gone: re-adding a profile starts fresh.
-      final reloaded = MonsterState();
-      await reloaded.load();
-      expect(reloaded.profiles.any((Profile p) => p.id == sam.id), isFalse);
+        // Sam's progress keys are gone: re-adding a profile starts fresh.
+        final reloaded = MonsterState();
+        await reloaded.load();
+        expect(reloaded.profiles.any((Profile p) => p.id == sam.id), isFalse);
 
-      // The last remaining profile cannot be deleted.
-      final refused = await state.deleteProfile(first);
-      expect(refused, isFalse);
-      expect(state.profiles, hasLength(1));
-    });
+        // The last remaining profile cannot be deleted.
+        final refused = await state.deleteProfile(first);
+        expect(refused, isFalse);
+        expect(state.profiles, hasLength(1));
+      },
+    );
   });
 }

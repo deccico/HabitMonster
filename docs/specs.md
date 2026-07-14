@@ -17,7 +17,7 @@ The application is a standalone, client-side mobile and web productivity tool. I
 
 ### 1.3 Core Features & Mechanics
 
-* **Evolution Stages:** 15 distinct stages forming a single coherent creature line (a dragon), from egg to an epic cosmic dragon.
+* **Evolution Stages:** 15 stages forming one of five coherent creature lines (dragon, phoenix, leviathan, dino, alien), each from the identical mystery egg to an epic cosmic form. Every new egg (new profile, prestige wrap, reset) rolls a random line — never the one just played — so the creature inside is a surprise.
 * **Cooldown Lockout:** A strict 60-second timer. The UI must clearly indicate how much time is left before the button becomes active again (e.g., a countdown text or a grayed-out button).
 * **Persistent State:** The app must remember the current evolution stage (1–15) and the exact timestamp of the last button press.
 * **Visual/Audio Feedback:** A flash, shake, or particle effect upon pressing the button, accompanied by a satisfying sound effect.
@@ -64,7 +64,7 @@ You will need a lightweight state management solution (like `Provider` or Flutte
 
 ### 2.4 Asset Management
 
-* **Images:** Monster stages are rendered as emoji (15 distinct emoji forming one dragon line in `lib/data/stages.dart`) rather than bundled image files; `assets/images/` holds only branding (the app-bar logo).
+* **Images:** Monster stages are rendered as emoji (five 15-stage creature lines in `lib/data/stages.dart`) rather than bundled image files; `assets/images/` holds only branding (the app-bar logo).
 * **Audio:** 1 short `.mp3` or `.wav` file stored in the `assets/audio/` directory.
 
 ### 2.5 Required Flutter Packages (Dependencies)
