@@ -58,4 +58,4 @@ The script runs the full cycle: analyze + tests → patch version bump (`tool/bu
 
 ## Credits
 
-Built by [Darumatic](https://darumatic.com). Task Monster is free and ad-free — if it helps your family, there's a "Buy me a coffee" link in the app's menu. ☕
+Built by [Darumatic](https://darumatic.com). Habit Monster is free and ad-free — if it helps your family, there's a "Buy me a coffee" link in the app's menu. ☕
