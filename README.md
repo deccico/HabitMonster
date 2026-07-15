@@ -1,4 +1,4 @@
-# Task Monster 🥚
+# Habit Monster 🥚
 
 A free, ad-free reward app for kids and families: finish a real-life task, press the button, and watch your monster evolve.
 
