@@ -11,6 +11,12 @@
 /// ships a couple of literal glyphs per creature, so the final "epic" stages
 /// show the creature mastering an element — the flavour names keep its
 /// identity ("… Dragon", "… Rex", …).
+///
+/// INVARIANT (enforced by stages_test.dart): apart from the shared stage-1
+/// egg, no two lines may use the same emoji at the same stage. The random
+/// roll is only *visible* if the lines diverge immediately after hatching —
+/// earlier data reused 🐣/🦎/🦕/🦖 across lines, which made every fresh egg
+/// look identical for the first week regardless of which line was rolled.
 library;
 
 /// Total number of evolution stages in every line.
@@ -40,37 +46,37 @@ const List<EvolutionLine> kEvolutionLines = <EvolutionLine>[
     name: 'dragon',
     emojis: <String>[
       '🥚', // 1  - egg
-      '🐣', // 2  - hatchling emerging
-      '🦎', // 3  - tiny dragonling
-      '🐍', // 4  - serpentling
-      '🐊', // 5  - snapjaw saurian
-      '🦕', // 6  - long-necked juvenile
-      '🦖', // 7  - fanged ravager
-      '🐲', // 8  - young dragon (horns & wings emerge)
-      '🐉', // 9  - full winged dragon
-      '🔥', // 10 - inferno dragon (breath awakens)
-      '⚡', // 11 - storm dragon
-      '🌋', // 12 - volcanic wyrm
-      '🌊', // 13 - leviathan wyrm
-      '☄️', // 14 - astral dragon
-      '🌌', // 15 - cosmic dragon / final
+      '🦎', // 2  - tiny dragonling
+      '🐍', // 3  - serpentling
+      '🐊', // 4  - snapjaw saurian
+      '🐲', // 5  - young dragon (horns & wings emerge)
+      '🐉', // 6  - full winged dragon
+      '🔥', // 7  - inferno dragon (breath awakens)
+      '⚡', // 8  - storm dragon
+      '🌋', // 9  - volcanic wyrm
+      '🌪️', // 10 - tempest wyrm
+      '⛈️', // 11 - thunder wyrm
+      '☄️', // 12 - comet dragon
+      '🌠', // 13 - astral dragon
+      '💥', // 14 - nova dragon
+      '🎆', // 15 - celestial dragon / final
     ],
     names: <String>[
       'Mystery Egg',
-      'Hatchling',
       'Dragonling',
       'Serpentling',
       'Snapjaw',
-      'Juvenile Wyrm',
-      'Fanged Ravager',
       'Young Dragon',
       'Winged Dragon',
       'Inferno Dragon',
       'Storm Dragon',
       'Volcanic Wyrm',
-      'Leviathan Wyrm',
+      'Tempest Wyrm',
+      'Thunder Wyrm',
+      'Comet Dragon',
       'Astral Dragon',
-      'Cosmic Dragon',
+      'Nova Dragon',
+      'Celestial Dragon',
     ],
   ),
   EvolutionLine(
@@ -127,7 +133,7 @@ const List<EvolutionLine> kEvolutionLines = <EvolutionLine>[
       '🐊', // 12 - tide ripper
       '🐋', // 13 - leviathan
       '🌊', // 14 - tidal titan
-      '🌌', // 15 - abyss sovereign / final
+      '🔱', // 15 - abyss sovereign / final
     ],
     names: <String>[
       'Mystery Egg',
@@ -151,36 +157,36 @@ const List<EvolutionLine> kEvolutionLines = <EvolutionLine>[
     name: 'dino',
     emojis: <String>[
       '🥚', // 1  - egg
-      '🐣', // 2  - hatchling emerging
-      '🦎', // 3  - lizardling
-      '🐢', // 4  - armored youngling
-      '🐊', // 5  - riverjaw
-      '🦕', // 6  - gentle longneck
-      '🦖', // 7  - young tyrant
-      '🌿', // 8  - jungle stomper
-      '⛰️', // 9  - mountain crusher
-      '🌪️', // 10 - cyclone rex
-      '⚡', // 11 - thunder lizard
-      '🌋', // 12 - magma rex
-      '❄️', // 13 - ice age rex
-      '☄️', // 14 - comet king
-      '🌌', // 15 - cosmic rex / final
+      '🐢', // 2  - armored hatchling
+      '🦕', // 3  - little longneck
+      '🦖', // 4  - young tyrant
+      '🌿', // 5  - jungle stomper
+      '⛰️', // 6  - mountain crusher
+      '🌪️', // 7  - cyclone rex
+      '❄️', // 8  - ice age rex
+      '⚡', // 9  - thunder lizard
+      '🌋', // 10 - magma rex
+      '☄️', // 11 - comet king
+      '💥', // 12 - meteor rex
+      '🌎', // 13 - earthshaker rex
+      '👑', // 14 - king rex
+      '🌠', // 15 - cosmic rex / final
     ],
     names: <String>[
       'Mystery Egg',
-      'Hatchling',
-      'Lizardling',
-      'Armored Youngling',
-      'Riverjaw',
-      'Gentle Longneck',
+      'Armored Hatchling',
+      'Little Longneck',
       'Young Tyrant',
       'Jungle Stomper',
       'Mountain Crusher',
       'Cyclone Rex',
+      'Ice Age Rex',
       'Thunder Lizard',
       'Magma Rex',
-      'Ice Age Rex',
       'Comet King',
+      'Meteor Rex',
+      'Earthshaker Rex',
+      'King Rex',
       'Cosmic Rex',
     ],
   ),
@@ -189,35 +195,35 @@ const List<EvolutionLine> kEvolutionLines = <EvolutionLine>[
     emojis: <String>[
       '🥚', // 1  - egg
       '🦠', // 2  - star microbe
-      '🪱', // 3  - space wriggler
-      '🐛', // 4  - larvoid
+      '🐛', // 3  - larvoid
+      '👾', // 4  - pixel invader
       '🐙', // 5  - tentacloid
       '🦑', // 6  - void squid
-      '👾', // 7  - pixel invader
-      '👽', // 8  - grey visitor
-      '🛸', // 9  - saucer pilot
-      '🌑', // 10 - dark moon lurker
-      '☄️', // 11 - comet rider
-      '🪐', // 12 - ring lord
-      '💫', // 13 - star weaver
-      '🌟', // 14 - supernova
+      '👽', // 7  - grey visitor
+      '🛸', // 8  - saucer pilot
+      '🌑', // 9  - dark moon lurker
+      '💫', // 10 - star weaver
+      '🪐', // 11 - ring lord
+      '🌟', // 12 - supernova
+      '🕳️', // 13 - black hole beast
+      '🌀', // 14 - galaxy spinner
       '🌌', // 15 - cosmic overmind / final
     ],
     names: <String>[
       'Mystery Egg',
       'Star Microbe',
-      'Space Wriggler',
       'Larvoid',
+      'Pixel Invader',
       'Tentacloid',
       'Void Squid',
-      'Pixel Invader',
       'Grey Visitor',
       'Saucer Pilot',
       'Dark Moon Lurker',
-      'Comet Rider',
-      'Ring Lord',
       'Star Weaver',
+      'Ring Lord',
       'Supernova',
+      'Black Hole Beast',
+      'Galaxy Spinner',
       'Cosmic Overmind',
     ],
   ),

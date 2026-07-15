@@ -25,10 +25,17 @@ class StageTracker extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
-        Text(
-          nameForStage(stage, lineIndex),
-          style: theme.textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.bold,
+        // Long flavour names ("Celestial Firebird") must shrink to fit one
+        // line: wrapping makes the home Column taller than the viewport on
+        // small screens.
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            nameForStage(stage, lineIndex),
+            maxLines: 1,
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
         const SizedBox(height: 4),
