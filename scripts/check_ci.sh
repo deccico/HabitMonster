@@ -7,7 +7,7 @@
 set -euo pipefail
 
 sha="${1:-$(git rev-parse HEAD)}"
-repo="deccico/HabitMonster"
+repo="deccico/TaskMonster"
 api="https://api.github.com/repos/${repo}/actions/runs?head_sha=${sha}"
 
 # ~15 min ceiling (60 * 15s). A freshly pushed run may not appear for a few

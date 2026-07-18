@@ -38,6 +38,11 @@ void main() {
       expect(gradle, contains('namespace = "com.darumatic.task_monster"'));
     });
 
+    test('CI check targets the renamed TaskMonster GitHub repo', () {
+      final checkCi = File('scripts/check_ci.sh').readAsStringSync();
+      expect(checkCi, contains('repo="deccico/TaskMonster"'));
+    });
+
     test('privacy policy page ships with the web app', () {
       final privacy = File('web/privacy.html').readAsStringSync();
       expect(privacy, contains('Task Monster — Privacy Policy'));
