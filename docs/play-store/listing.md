@@ -1,12 +1,15 @@
-# Google Play listing — Task Monster (pre-approval pack)
+# Google Play listing — Task Monster (submission pack)
 
-Status: **not yet published on Google Play.** Task Monster currently ships as a
-web app (https://task-monster.ink) and a signed APK distributed
-directly. This document holds everything needed for the Play Console listing,
-for review/approval before submission.
+Status: **ready to submit.** Task Monster ships as a web app
+(https://task-monster.ink) and a signed Android app bundle. This document holds
+everything needed for the Play Console submission — store listing text plus the
+exact answers for every App-content questionnaire.
 
 - Package name: `com.darumatic.task_monster`
-- Current version: v0.0.15 (versionCode from `pubspec.yaml` `+N`)
+- Bundle to upload: v0.0.18+ (`scripts/release_android.sh` →
+  `build/app/outputs/bundle/release/app-release.aab`). Do **not** upload
+  v0.0.17 or earlier: Families-policy compliance (adult-gated external links,
+  Advertising-ID collection disabled) landed in v0.0.18.
 - Developer: Darumatic — hello@darumatic.com — https://darumatic.com
 - Price / ads: Free, no ads, no in-app purchases
 
@@ -53,36 +56,79 @@ for review/approval before submission.
 
 ---
 
-## Categorisation & declarations
+## Store settings
 
 | Field | Value |
 |---|---|
 | App or game | App |
 | Category | Parenting |
 | Tags | Parenting, Productivity, Kids |
-| Contains ads | No |
-| In-app purchases | No |
-| Content rating (IARC) | Everyone — no violence, no user-generated content, no chat, no gambling, no location sharing |
-| Target audience | Decide before submission: "Parents" (18+) vs. including children. If any child age group is selected, the **Families policy** applies — see open items below. |
-| App access | Full access, no login required |
-| External link | In-app "Buy me a coffee" link (buymeacoffee.com/darumatic) opens in browser — allowed, but under Families policy external links need an adult gate; the parent lock does not currently gate the menu. Review before selecting a child audience. |
+| Contact email (required) | hello@darumatic.com |
+| Website | https://task-monster.ink |
+
+## App content questionnaires — decided answers
+
+### Privacy policy
+
+`https://task-monster.ink/privacy.html` (live; source in
+[`privacy-policy.md`](privacy-policy.md), hosted from `web/privacy.html`).
+
+### Ads
+
+Contains ads: **No.**
+
+### App access
+
+**All functionality is available without special access.** (The parent PIN is
+user-created on-device, not a login; reviewers can use everything without
+credentials.)
+
+### Content rating (IARC questionnaire)
+
+Category **"Utility, productivity, communication, or other"**; email
+hello@darumatic.com. Every content question is **No**: no violence, sexuality,
+language, controlled substances, gambling themes; no user-generated content or
+user interaction/chat; no location sharing; no personal-info sharing; no
+digital purchases (the "Buy me a coffee" donation opens in the external
+browser and is not an in-app purchase). Expected rating: **Everyone / PEGI 3**.
+
+### Target audience and content
+
+Target age groups: **5–8, 9–12, and 18 & over** (mixed audience — kids use it
+with their parents). Store presence appeals to children: yes, intentionally.
+
+Families-policy compliance shipped in v0.0.18:
+
+- External links ("Buy me a coffee", darumatic.com in Credits) sit behind an
+  **adult gate** (`lib/services/adult_gate.dart`): parent PIN/fingerprint when
+  the lock is on, otherwise an age-neutral arithmetic challenge.
+- **Advertising ID is never collected**: `google_analytics_adid_collection_enabled=false`
+  and ad-personalisation signals off in `AndroidManifest.xml`.
+- No ads, no purchases, no chat, no third-party ad SDKs.
+
+After approval, optionally opt in to the **Designed for Families** program
+(the app meets its requirements; it adds the family-friendly badge).
 
 ### Data safety form
 
-- Collected: approximate usage/diagnostics via **Firebase Analytics** (app
-  interactions, device/app info). No personal info, no location, no files.
-- Shared with third parties: No (Google Analytics for Firebase acts as a
-  service provider).
-- Data encrypted in transit: Yes. Deletion: data is anonymous; local progress
-  can be wiped by clearing app storage.
-- All monster/profile data (names, stages, PIN hash) stays **on device** in
-  local storage and is never transmitted.
+- **Does your app collect or share any of the required user data types?** Yes.
+- Data types declared, all with: Collected **Yes**, Shared **No**, Processed
+  ephemerally **No**, Required (no opt-out) **Yes**, Purpose **Analytics**:
+  - *App activity → App interactions* (anonymous events via Google Analytics
+    for Firebase, e.g. "an evolution happened").
+  - *Device or other IDs* (Firebase app-instance ID only — **not** the
+    Advertising ID, which is disabled).
+- Is all collected data encrypted in transit? **Yes.**
+- Do you provide a way to request deletion? Analytics data is anonymous and
+  not linkable; all app data (profiles, progress, PIN) is on-device and
+  deleted by uninstalling/clearing storage — declare via the privacy policy.
+- Everything the child enters (names, stages, PIN hash) stays **on device**
+  and is never transmitted.
 
-### Privacy policy (required field)
+### Remaining declarations
 
-Draft at [`privacy-policy.md`](privacy-policy.md), hosted as
-[`web/privacy.html`](../../web/privacy.html) on the web app:
-https://task-monster.ink/privacy.html — paste that URL into the Play Console.
+News app: **No.** COVID-19 contact-tracing/status app: **No.** Government
+app: **No.** Financial features: **None.** Health features: **None.**
 
 ---
 
@@ -91,30 +137,28 @@ https://task-monster.ink/privacy.html — paste that URL into the Play Console.
 | Asset | File | Play requirement |
 |---|---|---|
 | App icon | `icon-512.png` | 512×512 PNG ✓ |
-| Feature graphic | `feature-graphic-1024x500.png` | 1024×500 ✓ |
+| Feature graphic | `feature-graphic-1024x500.png` | 1024×500 ✓ (says "Task Monster") |
 | Phone screenshot 1 | `screenshot-1-mystery-egg.png` | 1080×2025 ✓ (min 2 required) |
 | Phone screenshot 2 | `screenshot-2-evolved-dragon.png` | 1080×2025 ✓ |
 | Phone screenshot 3 | `screenshot-3-profiles.png` | 1080×2025 ✓ |
 | Phone screenshot 4 | `screenshot-4-parent-lock.png` | 1080×2025 ✓ |
 | 7"/10" tablet screenshots | — | Optional; only needed for the tablet badge |
 
-Screenshots are captured from the real app (v0.0.15, dark theme) at phone
-aspect ratio.
+Screenshots are captured from the real app (dark theme) at phone aspect ratio.
 
 ---
 
-## Submission checklist (after pre-approval)
+## Submission walkthrough (Play Console)
 
-1. [ ] Decide target audience (parents-only vs. children — Families policy).
-2. [ ] If a child audience is selected: gate the external links behind the
-       parent lock and confirm Firebase Analytics is configured for
-       child-directed treatment (or disabled on Android).
-3. [ ] Host the privacy policy and paste the URL into Play Console.
-4. [ ] Build an **app bundle** (Play does not accept APKs for new apps):
-       `flutter build appbundle --release` — signs with the keystore
-       referenced by the git-ignored `android/key.properties`.
-5. [ ] Create the app in Play Console (com.darumatic.task_monster), enrol in
-       Play App Signing, upload the `.aab` to an internal-testing track first.
-6. [ ] Fill store listing from this file; complete content-rating, data-safety
-       and target-audience questionnaires as declared above.
-7. [ ] Promote internal → production once review passes.
+1. [ ] **Create app**: name "Task Monster", App, Free, default language
+       en-US → confirms package `com.darumatic.task_monster` on first upload.
+2. [ ] **Internal testing** → create release → enrol in Play App Signing →
+       upload `app-release.aab` (v0.0.18+), add yourself as tester.
+3. [ ] **App content** (Policy → App content): work through each item with the
+       answers above.
+4. [ ] **Store listing**: paste the text from this file; upload icon, feature
+       graphic and the four screenshots.
+5. [ ] **Store settings**: category Parenting, contact details as above.
+6. [ ] **Countries**: select all (or start with your launch markets).
+7. [ ] Promote internal → **Production** and submit for review. Reviews for
+       child-audience apps can take several days to a few weeks.

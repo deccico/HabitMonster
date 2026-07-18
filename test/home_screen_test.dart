@@ -508,13 +508,19 @@ void main() {
     expect(find.text('Email address copied!'), findsOneWidget); // snackbar
     await tester.pump(const Duration(seconds: 5)); // let the snackbar expire
 
-    // Buy me a coffee: the pitch plus the branded link button. Tapping the
-    // button is a no-op off web (openExternalUrl stub), so it must not crash.
+    // Buy me a coffee: the pitch plus the branded link button. The link is
+    // adult-gated (Play Families policy), so tapping the CTA shows the
+    // arithmetic challenge instead of leaving the app.
     await openMenu();
     await openEntry('Buy me a coffee');
     expect(find.text('Keep Task Monster rolling ☕'), findsOneWidget);
     await tester.tap(find.widgetWithText(FilledButton, 'Buy me a coffee'));
     await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
+    expect(find.text('Grown-ups only'), findsOneWidget);
+    await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
     expect(find.text('Keep Task Monster rolling ☕'), findsOneWidget);
     await closeDialog();
 

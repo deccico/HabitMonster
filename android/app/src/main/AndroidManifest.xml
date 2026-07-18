@@ -32,6 +32,15 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+        <!-- Play Families policy: the app targets children, so Firebase
+             Analytics must not collect the Advertising ID (AAID) or use
+             ad-personalisation signals. -->
+        <meta-data
+            android:name="google_analytics_adid_collection_enabled"
+            android:value="false" />
+        <meta-data
+            android:name="google_analytics_default_allow_ad_personalization_signals"
+            android:value="false" />
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and
@@ -42,6 +51,11 @@
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
+        </intent>
+        <!-- url_launcher: resolve a browser for the adult-gated https links. -->
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="https"/>
         </intent>
     </queries>
 </manifest>

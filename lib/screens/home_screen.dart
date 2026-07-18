@@ -13,8 +13,9 @@ import '../data/stages.dart';
 import '../models/monster_state.dart';
 import '../models/parent_lock_state.dart';
 import '../models/profile.dart';
+import '../services/adult_gate.dart';
 import '../services/analytics.dart';
-import '../services/open_url_stub.dart'
+import '../services/open_url_io.dart'
     if (dart.library.js_interop) '../services/open_url_web.dart';
 import '../services/parent_gate.dart';
 import '../services/update_checker.dart';
@@ -431,6 +432,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
+  /// Off-app links pass through the [AdultGate] (Play Families policy: a
+  /// child must not be able to casually leave the app).
+  Future<void> _openGatedLink(String url) async {
+    if (!await AdultGate.requestApproval(context)) return;
+    openExternalUrl(url);
+  }
+
   Future<void> _showAboutDialog() async {
     await showDialog<void>(
       context: context,
@@ -524,7 +532,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   'Buy me a coffee',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
                 ),
-                onPressed: () => openExternalUrl(_buyMeACoffeeUrl),
+                onPressed: () => _openGatedLink(_buyMeACoffeeUrl),
               ),
             ),
             const SizedBox(height: 10),
@@ -589,7 +597,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         ),
                         const SizedBox(height: 4),
                         GestureDetector(
-                          onTap: () => openExternalUrl(_darumaticUrl),
+                          onTap: () => _openGatedLink(_darumaticUrl),
                           child: Text(
                             'darumatic.com',
                             style: TextStyle(
