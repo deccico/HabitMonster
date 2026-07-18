@@ -11,6 +11,10 @@ set -euo pipefail
 
 # This VPS's tool locations (flutter / firebase are not on the default PATH).
 export PATH="/opt/flutter/bin:$HOME/.pub-cache/bin:$PATH"
+# Project-scoped deploy credential (monster-deployer service account, Firebase
+# Hosting Admin on habit-monster-50e69). Kept outside the repo; overrides any
+# globally configured credential so other projects' deploys are unaffected.
+export GOOGLE_APPLICATION_CREDENTIALS="$HOME/.secrets/task-monster-firebase.json"
 
 cd "$(dirname "$0")/.."
 

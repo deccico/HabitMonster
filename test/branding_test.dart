@@ -43,6 +43,15 @@ void main() {
       expect(checkCi, contains('repo="deccico/TaskMonster"'));
     });
 
+    test('release script deploys with the project-scoped credential', () {
+      final release = File('scripts/release.sh').readAsStringSync();
+      expect(
+        release,
+        contains('GOOGLE_APPLICATION_CREDENTIALS='
+            '"\$HOME/.secrets/task-monster-firebase.json"'),
+      );
+    });
+
     test('privacy policy page ships with the web app', () {
       final privacy = File('web/privacy.html').readAsStringSync();
       expect(privacy, contains('Task Monster — Privacy Policy'));
