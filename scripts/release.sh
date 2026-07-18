@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Full release cycle for Habit Monster. Runs the mandatory steps in order:
+# Full release cycle for Task Monster. Runs the mandatory steps in order:
 #   local tests -> bump patch version -> commit & push -> GitHub CI check -> deploy to prod
 #
 #   ./scripts/release.sh                       # cuts a release of the committed tree
@@ -91,4 +91,4 @@ done
 echo "==> Deploy to prod"
 firebase deploy --only hosting
 
-echo "==> Released v${new_version} -> https://habit-monster-50e69.web.app"
+echo "==> Released v${new_version} -> https://task-monster.ink"

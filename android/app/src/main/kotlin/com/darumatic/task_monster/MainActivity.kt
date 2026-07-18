@@ -1,4 +1,4 @@
-package com.darumatic.habit_monster
+package com.darumatic.task_monster
 
 import io.flutter.embedding.android.FlutterFragmentActivity
 

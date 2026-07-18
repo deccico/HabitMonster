@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:habit_monster/data/stages.dart';
-import 'package:habit_monster/widgets/stage_tracker.dart';
+import 'package:task_monster/data/stages.dart';
+import 'package:task_monster/widgets/stage_tracker.dart';
 import 'package:flutter/material.dart';
 
 void main() {

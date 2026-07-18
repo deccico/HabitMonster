@@ -1,8 +1,8 @@
-# Habit Monster 🥚
+# Task Monster 🥚
 
 A free, ad-free reward app for kids and families: finish a real-life task, press the button, and watch your monster evolve.
 
-**Live app:** https://habit-monster-50e69.web.app
+**Live app:** https://task-monster.ink
 
 ## How it works
 
@@ -58,4 +58,4 @@ The script runs the full cycle: analyze + tests → patch version bump (`tool/bu
 
 ## Credits
 
-Built by [Darumatic](https://darumatic.com). Habit Monster is free and ad-free — if it helps your family, there's a "Buy me a coffee" link in the app's menu. ☕
+Built by [Darumatic](https://darumatic.com). Task Monster is free and ad-free — if it helps your family, there's a "Buy me a coffee" link in the app's menu. ☕

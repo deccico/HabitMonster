@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:habit_monster/services/update_checker.dart';
-import 'package:habit_monster/version.dart';
+import 'package:task_monster/services/update_checker.dart';
+import 'package:task_monster/version.dart';
 
 void main() {
   test(

@@ -1,9 +1,9 @@
 import 'dart:math';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:habit_monster/data/stages.dart';
-import 'package:habit_monster/models/monster_state.dart';
-import 'package:habit_monster/models/profile.dart';
+import 'package:task_monster/data/stages.dart';
+import 'package:task_monster/models/monster_state.dart';
+import 'package:task_monster/models/profile.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// A Random whose nextInt returns a fixed sequence (repeating the last value),

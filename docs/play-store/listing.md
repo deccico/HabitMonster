@@ -1,11 +1,11 @@
-# Google Play listing — Habit Monster (pre-approval pack)
+# Google Play listing — Task Monster (pre-approval pack)
 
-Status: **not yet published on Google Play.** Habit Monster currently ships as a
-web app (https://habit-monster-50e69.web.app) and a signed APK distributed
+Status: **not yet published on Google Play.** Task Monster currently ships as a
+web app (https://task-monster.ink) and a signed APK distributed
 directly. This document holds everything needed for the Play Console listing,
 for review/approval before submission.
 
-- Package name: `com.darumatic.habit_monster`
+- Package name: `com.darumatic.task_monster`
 - Current version: v0.0.15 (versionCode from `pubspec.yaml` `+N`)
 - Developer: Darumatic — hello@darumatic.com — https://darumatic.com
 - Price / ads: Free, no ads, no in-app purchases
@@ -16,7 +16,7 @@ for review/approval before submission.
 
 ### App name (max 30 chars)
 
-> Habit Monster
+> Task Monster
 
 ### Short description (max 80 chars)
 
@@ -26,7 +26,7 @@ for review/approval before submission.
 
 > **Turn everyday tasks into an adventure!**
 >
-> Habit Monster is a simple, joyful reward app for kids and families. Finish a
+> Task Monster is a simple, joyful reward app for kids and families. Finish a
 > real-life task — homework, tidying up, brushing teeth — then press the big
 > button and watch your monster evolve with a burst of animation and sound.
 >
@@ -49,7 +49,7 @@ for review/approval before submission.
 > **🔒 Private by design**
 > No accounts, no sign-up, no ads. All progress is stored on your device.
 >
-> Habit Monster is free and ad-free, made with ❤️ by Darumatic.
+> Task Monster is free and ad-free, made with ❤️ by Darumatic.
 
 ---
 
@@ -80,10 +80,9 @@ for review/approval before submission.
 
 ### Privacy policy (required field)
 
-Draft at [`privacy-policy.md`](privacy-policy.md). It must be hosted at a
-public URL before submission — proposal: ship it as `privacy.html` on the web
-app (https://habit-monster-50e69.web.app/privacy.html) in the next release and
-paste that URL into the Play Console.
+Draft at [`privacy-policy.md`](privacy-policy.md), hosted as
+[`web/privacy.html`](../../web/privacy.html) on the web app:
+https://task-monster.ink/privacy.html — paste that URL into the Play Console.
 
 ---
 
@@ -114,7 +113,7 @@ aspect ratio.
 4. [ ] Build an **app bundle** (Play does not accept APKs for new apps):
        `flutter build appbundle --release` — signs with the keystore
        referenced by the git-ignored `android/key.properties`.
-5. [ ] Create the app in Play Console (com.darumatic.habit_monster), enrol in
+5. [ ] Create the app in Play Console (com.darumatic.task_monster), enrol in
        Play App Signing, upload the `.aab` to an internal-testing track first.
 6. [ ] Fill store listing from this file; complete content-rating, data-safety
        and target-audience questionnaires as declared above.

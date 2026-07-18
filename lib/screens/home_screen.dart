@@ -742,7 +742,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         title: Padding(
           padding: const EdgeInsets.symmetric(vertical: 8),
           child: Image.asset(
-            'assets/images/habit-monster.png',
+            'assets/images/task-monster.png',
             height: 80,
             fit: BoxFit.contain,
             filterQuality: FilterQuality.medium,

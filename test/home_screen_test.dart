@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:habit_monster/models/monster_state.dart';
-import 'package:habit_monster/models/parent_lock_state.dart';
-import 'package:habit_monster/screens/home_screen.dart';
-import 'package:habit_monster/services/biometric_gate.dart';
-import 'package:habit_monster/services/update_checker.dart';
-import 'package:habit_monster/version.dart';
+import 'package:task_monster/models/monster_state.dart';
+import 'package:task_monster/models/parent_lock_state.dart';
+import 'package:task_monster/screens/home_screen.dart';
+import 'package:task_monster/services/biometric_gate.dart';
+import 'package:task_monster/services/update_checker.dart';
+import 'package:task_monster/version.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 

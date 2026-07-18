@@ -1,11 +1,11 @@
 {
-    "name": "habit_monster",
-    "short_name": "habit_monster",
+    "name": "Task Monster",
+    "short_name": "Task Monster",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "A free, ad-free reward app for kids and families: finish a real-life task, press the button, and watch your mystery monster evolve.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

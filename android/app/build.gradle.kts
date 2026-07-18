@@ -16,7 +16,7 @@ if (keystorePropertiesFile.exists()) {
 }
 
 android {
-    namespace = "com.darumatic.habit_monster"
+    namespace = "com.darumatic.task_monster"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -27,7 +27,7 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.darumatic.habit_monster"
+        applicationId = "com.darumatic.task_monster"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion

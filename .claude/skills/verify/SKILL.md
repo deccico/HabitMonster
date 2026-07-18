@@ -1,9 +1,9 @@
 ---
 name: verify
-description: Build, serve, and drive Habit Monster (Flutter web) headlessly to verify UI changes at the real surface.
+description: Build, serve, and drive Task Monster (Flutter web) headlessly to verify UI changes at the real surface.
 ---
 
-# Verifying Habit Monster (Flutter web)
+# Verifying Task Monster (Flutter web)
 
 Flutter is not on PATH: `export PATH="/opt/flutter/bin:$PATH"`.
 
