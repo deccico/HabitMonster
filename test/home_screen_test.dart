@@ -357,9 +357,10 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 350));
 
-    // Setup shows the opt-in switch (on by default), not the shortcut button.
+    // Setup shows the opt-in switch (on by default), not the fingerprint
+    // prompt — choosing a PIN always happens on the keypad.
     expect(find.text('Allow fingerprint approval'), findsOneWidget);
-    expect(find.text('Use fingerprint'), findsNothing);
+    expect(find.byIcon(Icons.fingerprint), findsNothing);
 
     await enterPin(tester, '1234');
     await enterPin(tester, '1234');
@@ -403,7 +404,9 @@ void main() {
     await tester.pump(const Duration(milliseconds: 350));
 
     expect(find.text('Ask a grown-up! 🔒'), findsOneWidget);
-    expect(find.text('Use fingerprint'), findsNothing);
+    expect(find.byIcon(Icons.fingerprint), findsNothing);
+    // The keypad shows straight away — no fallback step.
+    expect(find.widgetWithText(FilledButton, '5'), findsOneWidget);
 
     // The PIN still approves.
     await enterPin(tester, '1234');
@@ -414,9 +417,8 @@ void main() {
     await teardownTree(tester);
   });
 
-  testWidgets('fingerprint approves the evolution at the parent gate', (
-    tester,
-  ) async {
+  testWidgets('fingerprint leads at the parent gate and approves without '
+      'any tap', (tester) async {
     final state = await pumpApp(tester);
     await lockState.enable('1234');
     biometrics
@@ -434,12 +436,8 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 350));
 
-    // The dialog offers the fingerprint shortcut next to the PIN pad.
-    expect(find.text('Ask a grown-up! 🔒'), findsOneWidget);
-    expect(find.text('Use fingerprint'), findsOneWidget);
-    expect(find.widgetWithText(FilledButton, '5'), findsOneWidget); // pad too
-
-    await tester.tap(find.text('Use fingerprint'));
+    // The dialog auto-runs the fingerprint prompt and approves on its own —
+    // no button press, no PIN.
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 350));
 
@@ -467,13 +465,24 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 350));
 
-    // Rejected read: nothing happens, the dialog stays.
-    await tester.tap(find.text('Use fingerprint'));
+    // The auto-run prompt was rejected: the dialog stays on the
+    // fingerprint-first view, keypad hidden behind the fallback button.
     await tester.pump();
     expect(find.text('Ask a grown-up! 🔒'), findsOneWidget);
+    expect(find.byIcon(Icons.fingerprint), findsOneWidget);
+    expect(find.text('Fingerprint not recognized — try again'), findsOneWidget);
+    expect(find.widgetWithText(FilledButton, '5'), findsNothing);
     expect(state.currentStage, 1);
 
-    // The PIN pad still approves.
+    // Tapping the icon retries; still rejected, still stage 1.
+    await tester.tap(find.byIcon(Icons.fingerprint));
+    await tester.pump();
+    expect(state.currentStage, 1);
+
+    // The PIN fallback reveals the keypad, which still approves.
+    await tester.tap(find.text('Use PIN instead'));
+    await tester.pump();
+    expect(find.widgetWithText(FilledButton, '5'), findsOneWidget);
     await enterPin(tester, '1234');
     await tester.pump();
     expect(state.currentStage, 2);
@@ -497,7 +506,7 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 350));
 
-    await tester.tap(find.text('Use fingerprint'));
+    // The prompt auto-runs and approves without any tap.
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 350));
 
@@ -520,7 +529,37 @@ void main() {
     await tester.pump(const Duration(milliseconds: 350));
 
     expect(find.text('Ask a grown-up! 🔒'), findsOneWidget);
-    expect(find.text('Use fingerprint'), findsNothing);
+    expect(find.byIcon(Icons.fingerprint), findsNothing);
+    // The keypad is the primary (and only) gate.
+    expect(find.widgetWithText(FilledButton, '5'), findsOneWidget);
+
+    await teardownTree(tester);
+  });
+
+  testWidgets('the gate shows fingerprint first: keypad hidden until '
+      '"Use PIN instead"', (tester) async {
+    await pumpApp(tester);
+    await lockState.enable('1234');
+    biometrics
+      ..isAvailable = true
+      ..approves = false;
+    await tester.pump();
+
+    await tester.tap(find.byIcon(Icons.lock));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
+    await tester.pump();
+
+    // Fingerprint-first view: icon and fallback button, no keypad.
+    expect(find.byIcon(Icons.fingerprint), findsOneWidget);
+    expect(find.text('Use PIN instead'), findsOneWidget);
+    expect(find.widgetWithText(FilledButton, '5'), findsNothing);
+
+    // The fallback reveals the keypad and hides the fingerprint view.
+    await tester.tap(find.text('Use PIN instead'));
+    await tester.pump();
+    expect(find.widgetWithText(FilledButton, '5'), findsOneWidget);
+    expect(find.byIcon(Icons.fingerprint), findsNothing);
 
     await teardownTree(tester);
   });
