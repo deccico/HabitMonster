@@ -9,7 +9,9 @@
 #   ./scripts/release_android.sh "Fix stage tracker" # bundles working changes under that message
 #
 # The .aab lands in build/app/outputs/bundle/release/app-release.aab and is
-# uploaded manually in the Play Console (no Play API credential on this VPS).
+# then uploaded to the Play internal testing track via scripts/play_upload.py
+# (override the track with PLAY_TRACK, or skip the upload with PLAY_TRACK=none;
+# promote internal -> production in the Play Console).
 set -euo pipefail
 
 # This VPS's tool locations (flutter is not on the default PATH).
@@ -63,5 +65,12 @@ if echo "$cert" | grep -q "Android Debug"; then
 fi
 echo "$cert" | grep -m1 "Owner:"
 
-echo "==> Released v${new_version}"
-echo "    Upload to Play Console: ${aab}"
+track="${PLAY_TRACK:-internal}"
+if [ "$track" = "none" ]; then
+  echo "==> Released v${new_version} (Play upload skipped)"
+  echo "    Bundle: ${aab}"
+else
+  echo "==> Upload to Play (${track} track)"
+  python3 scripts/play_upload.py "$aab" --track "$track"
+  echo "==> Released v${new_version} to Play ${track}"
+fi

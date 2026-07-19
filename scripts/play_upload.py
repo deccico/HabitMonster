@@ -5,9 +5,11 @@
     scripts/play_upload.py path/to/app.aab         # upload to internal
     scripts/play_upload.py path/to/app.aab --track production
 
-Auth: the service account JSON pointed at by GOOGLE_APPLICATION_CREDENTIALS
-(default: ~/.secrets/task-monster-firebase.json — monster-deployer, which is
-also invited to the Play Console with release permission for this app).
+Auth: the service account JSON at ~/.secrets/play-publisher.json
+(monstruous-tasker-manager, invited to the Play Console with Admin), or
+whatever PLAY_PUBLISHER_CREDENTIALS points at. Deliberately NOT
+GOOGLE_APPLICATION_CREDENTIALS: release.sh exports that for the Firebase
+deploy credential, which has no Play access.
 """
 
 import argparse
@@ -25,8 +27,8 @@ UPLOAD_API = f"https://androidpublisher.googleapis.com/upload/androidpublisher/v
 
 def bearer() -> dict:
     key_file = os.environ.get(
-        "GOOGLE_APPLICATION_CREDENTIALS",
-        os.path.expanduser("~/.secrets/task-monster-firebase.json"),
+        "PLAY_PUBLISHER_CREDENTIALS",
+        os.path.expanduser("~/.secrets/play-publisher.json"),
     )
     creds = service_account.Credentials.from_service_account_file(
         key_file, scopes=["https://www.googleapis.com/auth/androidpublisher"]
