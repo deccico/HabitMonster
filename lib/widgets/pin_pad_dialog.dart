@@ -9,8 +9,9 @@ import '../services/biometric_gate.dart';
 
 const int _pinLength = 4;
 
-/// Ask a grown-up to approve: fingerprint (when the device has one) or the
-/// current parent PIN.
+/// Ask a grown-up to approve: fingerprint first (when the device has one —
+/// the OS prompt opens immediately), with the parent PIN as the fallback
+/// behind "Use PIN instead".
 ///
 /// Resolves to the PIN string once entered, or the empty string when the
 /// approval came from a successful biometric read (callers that need the PIN
@@ -55,6 +56,11 @@ class _PinPadDialogState extends State<_PinPadDialog> {
   /// in verify mode, allowed by the lock's setup choice).
   bool _bioAvailable = false;
 
+  /// Verify mode: the fingerprint leads and the keypad is the fallback,
+  /// revealed only by "Use PIN instead". Always true in setup mode and on
+  /// devices without a reader.
+  bool _showPinPad = true;
+
   /// Setup only: the parent's choice for the "allow fingerprint" switch.
   bool _allowBiometric = true;
 
@@ -81,14 +87,25 @@ class _PinPadDialogState extends State<_PinPadDialog> {
     if (!_isSetup && !context.read<ParentLockState>().biometricAllowed) return;
     final available = await context.read<BiometricGate>().available;
     if (!mounted || !available) return;
-    setState(() => _bioAvailable = true);
+    setState(() {
+      _bioAvailable = true;
+      // Fingerprint first at the gate; the keypad becomes the fallback.
+      if (!_isSetup) _showPinPad = false;
+    });
+    if (!_isSetup) unawaited(_onFingerprint());
   }
 
   Future<void> _onFingerprint() async {
     final ok = await context.read<BiometricGate>().authenticate(
       'A parent needs to approve this',
     );
-    if (!mounted || !ok) return;
+    if (!mounted) return;
+    if (!ok) {
+      // Cancelled or unrecognized: stay on the fingerprint view so the icon
+      // can retry, with the PIN fallback still one tap away.
+      setState(() => _message = 'Fingerprint not recognized — try again');
+      return;
+    }
     // Empty string = "approved without typing the PIN"; callers only check
     // for non-null.
     Navigator.pop(context, '');
@@ -195,19 +212,35 @@ class _PinPadDialogState extends State<_PinPadDialog> {
           children: <Widget>[
             Text(subtitle, textAlign: TextAlign.center),
             const SizedBox(height: 16),
-            if (!_isSetup && _bioAvailable) ...<Widget>[
-              FilledButton.tonalIcon(
+            if (!_showPinPad) ...<Widget>[
+              // Fingerprint leads; tapping the icon re-runs the prompt.
+              IconButton(
                 onPressed: _onFingerprint,
-                icon: const Icon(Icons.fingerprint),
-                label: const Text('Use fingerprint'),
+                iconSize: 56,
+                icon: Icon(Icons.fingerprint, color: scheme.primary),
+                tooltip: 'Use fingerprint',
               ),
-              const SizedBox(height: 8),
               Text(
-                '— or enter the PIN —',
+                'Tap to scan a fingerprint',
                 style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
               ),
-              const SizedBox(height: 8),
-            ],
+              SizedBox(
+                height: 24,
+                child: Center(
+                  child: Text(
+                    _message ?? '',
+                    style: TextStyle(color: scheme.error, fontSize: 12),
+                  ),
+                ),
+              ),
+              TextButton(
+                onPressed: () => setState(() {
+                  _showPinPad = true;
+                  _message = null;
+                }),
+                child: const Text('Use PIN instead'),
+              ),
+            ] else ...<Widget>[
             Row(
                   key: ValueKey<int>(_shakeTick),
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -298,6 +331,7 @@ class _PinPadDialogState extends State<_PinPadDialog> {
                 contentPadding: EdgeInsets.zero,
                 dense: true,
               ),
+            ],
           ],
         ),
       ),
