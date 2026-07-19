@@ -48,7 +48,7 @@ void main() {
       expect(
         release,
         contains('GOOGLE_APPLICATION_CREDENTIALS='
-            '"\$HOME/.secrets/task-monster-firebase.json"'),
+            '"\$HOME/.secrets/play-publisher.json"'),
       );
     });
 
