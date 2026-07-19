@@ -23,10 +23,15 @@ Future<String?> showPinVerifyDialog(BuildContext context) {
   );
 }
 
-/// Let a grown-up choose a new parent PIN (entered twice to confirm).
-/// Resolves to the new PIN, or `null` if dismissed.
-Future<String?> showPinSetupDialog(BuildContext context) {
-  return showDialog<String>(
+/// What the setup dialog resolved to: the chosen PIN plus whether a
+/// fingerprint may approve in place of it.
+typedef PinSetupResult = ({String pin, bool allowBiometric});
+
+/// Let a grown-up choose a new parent PIN (entered twice to confirm) and —
+/// when the device has a fingerprint reader — whether fingerprint approval
+/// is allowed. Resolves to the choices, or `null` if dismissed.
+Future<PinSetupResult?> showPinSetupDialog(BuildContext context) {
+  return showDialog<PinSetupResult>(
     context: context,
     builder: (_) => const _PinPadDialog(mode: _PinMode.setup),
   );
@@ -46,8 +51,12 @@ class _PinPadDialog extends StatefulWidget {
 class _PinPadDialogState extends State<_PinPadDialog> {
   String _entered = '';
 
-  /// True once the biometric reader is confirmed present + enrolled.
+  /// True once the biometric reader is confirmed present + enrolled (and,
+  /// in verify mode, allowed by the lock's setup choice).
   bool _bioAvailable = false;
+
+  /// Setup only: the parent's choice for the "allow fingerprint" switch.
+  bool _allowBiometric = true;
 
   /// Setup happens in two passes: choose, then confirm.
   String? _firstPass;
@@ -63,10 +72,13 @@ class _PinPadDialogState extends State<_PinPadDialog> {
   @override
   void initState() {
     super.initState();
-    if (!_isSetup) _checkBiometrics();
+    _checkBiometrics();
   }
 
   Future<void> _checkBiometrics() async {
+    // Verify mode also honors the choice made at setup; setup mode only
+    // needs the reader to exist to offer the switch.
+    if (!_isSetup && !context.read<ParentLockState>().biometricAllowed) return;
     final available = await context.read<BiometricGate>().available;
     if (!mounted || !available) return;
     setState(() => _bioAvailable = true);
@@ -132,7 +144,10 @@ class _PinPadDialogState extends State<_PinPadDialog> {
           _message = null;
         });
       } else if (_entered == _firstPass) {
-        Navigator.pop(context, _entered);
+        Navigator.pop(context, (
+          pin: _entered,
+          allowBiometric: _bioAvailable && _allowBiometric,
+        ));
       } else {
         _firstPass = null;
         _reject("PINs didn't match — start over");
@@ -180,7 +195,7 @@ class _PinPadDialogState extends State<_PinPadDialog> {
           children: <Widget>[
             Text(subtitle, textAlign: TextAlign.center),
             const SizedBox(height: 16),
-            if (_bioAvailable) ...<Widget>[
+            if (!_isSetup && _bioAvailable) ...<Widget>[
               FilledButton.tonalIcon(
                 onPressed: _onFingerprint,
                 icon: const Icon(Icons.fingerprint),
@@ -267,6 +282,21 @@ class _PinPadDialogState extends State<_PinPadDialog> {
                       ),
                   ],
                 ),
+              ),
+            if (_isSetup && _bioAvailable)
+              SwitchListTile(
+                value: _allowBiometric,
+                onChanged: (v) => setState(() => _allowBiometric = v),
+                title: const Text(
+                  'Allow fingerprint approval',
+                  style: TextStyle(fontSize: 14),
+                ),
+                subtitle: const Text(
+                  'Any fingerprint enrolled on this device can approve',
+                  style: TextStyle(fontSize: 11),
+                ),
+                contentPadding: EdgeInsets.zero,
+                dense: true,
               ),
           ],
         ),

@@ -639,9 +639,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final lock = context.read<ParentLockState>();
     if (on == lock.enabled) return;
     if (on) {
-      final pin = await showPinSetupDialog(context);
-      if (!mounted || pin == null) return;
-      await lock.enable(pin);
+      final setup = await showPinSetupDialog(context);
+      if (!mounted || setup == null) return;
+      await lock.enable(setup.pin, allowBiometric: setup.allowBiometric);
       analytics.logEvent('parent_lock_enabled', const <String, Object>{});
     } else {
       final pin = await showPinVerifyDialog(context);

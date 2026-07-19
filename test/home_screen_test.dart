@@ -323,8 +323,10 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 350));
 
-    // Choose and confirm a PIN.
+    // Choose and confirm a PIN. Without a biometric reader there is no
+    // fingerprint opt-in switch.
     expect(find.text('Set parent PIN'), findsOneWidget);
+    expect(find.text('Allow fingerprint approval'), findsNothing);
     await enterPin(tester, '1234');
     expect(find.text('Confirm PIN'), findsOneWidget);
     await enterPin(tester, '1234');
@@ -342,6 +344,73 @@ void main() {
     await tester.pump(const Duration(milliseconds: 350));
     expect(find.text('Parent lock'), findsNothing);
 
+    await teardownTree(tester);
+  });
+
+  testWidgets('setup offers the fingerprint switch; left on, it allows '
+      'biometric approval', (tester) async {
+    await pumpApp(tester);
+    biometrics.isAvailable = true;
+    await tester.pump();
+
+    await tester.tap(find.byIcon(Icons.lock_open_outlined));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
+
+    // Setup shows the opt-in switch (on by default), not the shortcut button.
+    expect(find.text('Allow fingerprint approval'), findsOneWidget);
+    expect(find.text('Use fingerprint'), findsNothing);
+
+    await enterPin(tester, '1234');
+    await enterPin(tester, '1234');
+    await tester.pump();
+
+    expect(lockState.enabled, isTrue);
+    expect(lockState.biometricAllowed, isTrue);
+
+    await teardownTree(tester);
+  });
+
+  testWidgets('fingerprint opt-out at setup hides the button at the gate', (
+    tester,
+  ) async {
+    final state = await pumpApp(tester);
+    biometrics
+      ..isAvailable = true
+      ..approves = true;
+    await tester.pump();
+
+    // Enable the lock, switching fingerprint approval OFF.
+    await tester.tap(find.byIcon(Icons.lock_open_outlined));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
+    await tester.tap(find.byType(SwitchListTile));
+    await tester.pump();
+    await enterPin(tester, '1234');
+    await enterPin(tester, '1234');
+    await tester.pump();
+    expect(lockState.enabled, isTrue);
+    expect(lockState.biometricAllowed, isFalse);
+
+    // Reach the evolution gate: the dialog is PIN-only despite the reader.
+    await tester.tap(find.text('START'));
+    await tester.pump();
+    for (var i = 0; i < 10; i++) {
+      await tester.pump(const Duration(seconds: 1));
+    }
+    await tester.tap(find.text("I'M READY!"));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
+
+    expect(find.text('Ask a grown-up! 🔒'), findsOneWidget);
+    expect(find.text('Use fingerprint'), findsNothing);
+
+    // The PIN still approves.
+    await enterPin(tester, '1234');
+    await tester.pump();
+    expect(state.currentStage, 2);
+
+    await tester.pump(const Duration(seconds: 3));
     await teardownTree(tester);
   });
 

@@ -77,6 +77,25 @@ void main() {
     },
   );
 
+  test('biometric approval defaults to on, persists an opt-out, and resets '
+      'when the lock is wiped', () async {
+    final lock = ParentLockState();
+    await lock.load();
+    expect(lock.biometricAllowed, isTrue); // default, incl. pre-existing locks
+
+    await lock.enable('1234', allowBiometric: false);
+    expect(lock.biometricAllowed, isFalse);
+
+    final reloaded = ParentLockState();
+    await reloaded.load();
+    expect(reloaded.biometricAllowed, isFalse); // survives restart
+
+    await reloaded.disableApproved();
+    final fresh = ParentLockState();
+    await fresh.load();
+    expect(fresh.biometricAllowed, isTrue); // wiped with the lock
+  });
+
   test('an enabled flag without a stored PIN loads as disabled', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{
       'parentLockEnabled': true,

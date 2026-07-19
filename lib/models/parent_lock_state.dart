@@ -11,9 +11,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// `ParentGate`). The PIN is stored as `sha256(salt:pin)` in
 /// [SharedPreferences] under keys shared by every profile:
 ///
-///  * `parentLockEnabled` — whether the gate is active.
-///  * `parentPinHash`     — hex digest of the salted PIN.
-///  * `parentPinSalt`     — random 16-byte salt, base64url.
+///  * `parentLockEnabled`   — whether the gate is active.
+///  * `parentPinHash`       — hex digest of the salted PIN.
+///  * `parentPinSalt`       — random 16-byte salt, base64url.
+///  * `parentLockBiometric` — whether a fingerprint may approve (chosen at
+///    setup; any enrolled fingerprint passes, so parents can turn it off on
+///    a device where the child's finger is enrolled).
 ///
 /// This is a friction gate for kids, not real security: clearing the site's
 /// storage clears the lock too.
@@ -21,6 +24,7 @@ class ParentLockState extends ChangeNotifier {
   static const String _kEnabled = 'parentLockEnabled';
   static const String _kPinHash = 'parentPinHash';
   static const String _kPinSalt = 'parentPinSalt';
+  static const String _kBiometric = 'parentLockBiometric';
 
   /// Consecutive wrong tries before the cooldown kicks in.
   static const int maxAttempts = 5;
@@ -31,11 +35,16 @@ class ParentLockState extends ChangeNotifier {
   bool _enabled = false;
   String _hash = '';
   String _salt = '';
+  bool _biometricAllowed = true;
 
   int _failedAttempts = 0;
   DateTime? _cooldownUntil;
 
   bool get enabled => _enabled;
+
+  /// Whether the verify dialog may offer fingerprint approval. Defaults to
+  /// true so locks set up before this option existed keep their behavior.
+  bool get biometricAllowed => _biometricAllowed;
 
   /// Seconds left in the wrong-PIN cooldown; 0 when input is allowed.
   int get cooldownRemaining {
@@ -50,23 +59,27 @@ class ParentLockState extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     _hash = prefs.getString(_kPinHash) ?? '';
     _salt = prefs.getString(_kPinSalt) ?? '';
+    _biometricAllowed = prefs.getBool(_kBiometric) ?? true;
     // A lock without a stored PIN can never be opened — treat it as off.
     _enabled = (prefs.getBool(_kEnabled) ?? false) && _hash.isNotEmpty;
     notifyListeners();
   }
 
-  /// Turn the lock on with a freshly chosen [pin].
-  Future<void> enable(String pin) async {
+  /// Turn the lock on with a freshly chosen [pin]. [allowBiometric] decides
+  /// whether a fingerprint may approve in place of the PIN.
+  Future<void> enable(String pin, {bool allowBiometric = true}) async {
     final rng = Random.secure();
     _salt = base64UrlEncode(List<int>.generate(16, (_) => rng.nextInt(256)));
     _hash = _digest(_salt, pin);
     _enabled = true;
+    _biometricAllowed = allowBiometric;
     _failedAttempts = 0;
     _cooldownUntil = null;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_kEnabled, true);
     await prefs.setString(_kPinHash, _hash);
     await prefs.setString(_kPinSalt, _salt);
+    await prefs.setBool(_kBiometric, allowBiometric);
     notifyListeners();
   }
 
@@ -85,10 +98,12 @@ class ParentLockState extends ChangeNotifier {
     _enabled = false;
     _hash = '';
     _salt = '';
+    _biometricAllowed = true;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_kEnabled, false);
     await prefs.remove(_kPinHash);
     await prefs.remove(_kPinSalt);
+    await prefs.remove(_kBiometric);
     notifyListeners();
   }
 
