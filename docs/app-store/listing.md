@@ -1,8 +1,12 @@
 # Apple App Store listing — Task Monster (submission pack)
 
-Status: **in preparation.** Adapted from the Play submission pack
+Status: **submitted for review 2026-07-19** ("Waiting for Review"; up to ~48h).
+Adapted from the Play submission pack
 ([`../play-store/listing.md`](../play-store/listing.md)).
 
+- App Store name: **Task Monster: Chore Rewards** ("Task Monster" was taken;
+  home-screen name stays "Task Monster")
+- App Store Connect app ID: 6792448899
 - Bundle ID: `com.darumatic.taskMonster`
 - Team: DARUMATIC PTY LTD — Team ID `76UL6RCLTT`
 - Version to submit: 0.0.19 (build 19), iOS deployment target 15.0
@@ -130,17 +134,28 @@ mentioned above" / exempt. `ITSAppUsesNonExemptEncryption = NO` is set in
 
 ---
 
-## Submission walkthrough (App Store Connect)
+## Submission walkthrough (App Store Connect) — done 2026-07-19
 
-1. [ ] **Certificates/profile**: automatic signing with Team `76UL6RCLTT`
-       (`xcodebuild -allowProvisioningUpdates` or Xcode UI).
-2. [ ] **Register bundle ID** `com.darumatic.taskMonster` (happens implicitly
-       when Xcode creates the provisioning profile).
-3. [ ] **Create app record**: My Apps → "+" → New App → iOS, name "Task
-       Monster", bundle ID above, SKU `task-monster`.
-4. [ ] **Upload build**: `xcodebuild -exportArchive` → upload .ipa (Transporter
-       or `xcrun altool`/notarytool with ASC API key).
-5. [ ] **App Information / Pricing** (Free) / **App Privacy** per this doc.
-6. [ ] **Prepare for submission**: description, keywords, screenshots, URLs,
-       review notes; select build; age rating questionnaire.
-7. [ ] Submit for review. First reviews typically take 1–3 days.
+1. [x] **Certificates/profile**: automatic cloud signing with Team `76UL6RCLTT`.
+2. [x] **Bundle ID registered** implicitly by cloud signing.
+3. [x] **App record created**: "Task Monster: Chore Rewards", SKU
+       `task-monster`, app ID 6792448899.
+4. [x] **Build uploaded**: 0.0.19 (19) via `xcodebuild -exportArchive`
+       destination=upload (`scripts/release_ios.sh --upload`).
+5. [x] **App Information** (Lifestyle/Productivity, content rights: no
+       third-party content), **Pricing** ($0.00, 175 countries), **App
+       Privacy** published per this doc.
+6. [x] **Version page**: description (note: Apple rejects multi-codepoint
+       emoji like 👨‍👩‍👧‍👦/❤️ — use plain text), keywords, URLs, 4×
+       iPhone 6.5" + 3× iPad 13" screenshots, review contact, age rating 4+.
+7. [x] **Submitted for review** ("Waiting for Review"). Reviews take up to
+       ~48 hours typically.
+
+Remaining follow-ups:
+
+- [ ] **EU Digital Services Act trader status** (App Information → App Store
+      Regulations & Permits → Set Up): must be provided/verified by the
+      Account Holder or EU distribution can be blocked. User action.
+- [ ] After approval: verify the store listing renders correctly; consider
+      native (simulator-captured) screenshots to replace the framed Play
+      captures.
