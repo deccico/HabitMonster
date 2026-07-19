@@ -95,6 +95,6 @@ done
 [ "$missing" -eq 0 ] || exit 1
 
 echo "==> Deploy to prod"
-firebase deploy --only hosting
+firebase deploy --only hosting --project habit-monster-50e69
 
 echo "==> Released v${new_version} -> https://task-monster.ink"

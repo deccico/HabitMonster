@@ -4,6 +4,7 @@
     scripts/play_upload.py --check                 # verify API access only
     scripts/play_upload.py path/to/app.aab         # upload to internal
     scripts/play_upload.py path/to/app.aab --track production
+    scripts/play_upload.py path/to/app.aab --track production --status draft
 
 Auth: the service account JSON at ~/.secrets/play-publisher.json
 (monstruous-tasker-manager, invited to the Play Console with Admin), or
@@ -16,16 +17,36 @@ import argparse
 import os
 import sys
 
-import google.auth.transport.requests
 import requests
-from google.oauth2 import service_account
 
 PACKAGE = "com.darumatic.task_monster"
 API = f"https://androidpublisher.googleapis.com/androidpublisher/v3/applications/{PACKAGE}"
 UPLOAD_API = f"https://androidpublisher.googleapis.com/upload/androidpublisher/v3/applications/{PACKAGE}"
 
+# The API refuses completed releases until the app's first Console publish.
+DRAFT_APP_ERROR = "Only releases with status draft may be created on draft app"
+
+
+def track_body(track: str, version_code, status: str) -> dict:
+    return {
+        "track": track,
+        "releases": [{"versionCodes": [str(version_code)], "status": status}],
+    }
+
+
+def commit_error_hint(resp_text: str, status: str) -> str | None:
+    if DRAFT_APP_ERROR in resp_text and status == "completed":
+        return (
+            "The app is still unpublished (draft app): rerun with --status draft, "
+            "then finish the release (name, notes, save) in the Play Console."
+        )
+    return None
+
 
 def bearer() -> dict:
+    import google.auth.transport.requests
+    from google.oauth2 import service_account
+
     key_file = os.environ.get(
         "PLAY_PUBLISHER_CREDENTIALS",
         os.path.expanduser("~/.secrets/play-publisher.json"),
@@ -45,6 +66,12 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("aab", nargs="?", help="path to the .aab to upload")
     ap.add_argument("--track", default="internal", help="Play track (default: internal)")
+    ap.add_argument(
+        "--status",
+        default="completed",
+        choices=["completed", "draft"],
+        help="release status (default: completed; draft apps only accept draft)",
+    )
     ap.add_argument("--check", action="store_true", help="only verify API access")
     args = ap.parse_args()
     if not args.check and not args.aab:
@@ -78,18 +105,18 @@ def main():
     resp = requests.put(
         f"{API}/edits/{edit_id}/tracks/{args.track}",
         headers=headers,
-        json={
-            "track": args.track,
-            "releases": [{"versionCodes": [str(version_code)], "status": "completed"}],
-        },
+        json=track_body(args.track, version_code, args.status),
     )
     if resp.status_code != 200:
         die(resp, f"assigning track {args.track}")
 
     resp = requests.post(f"{API}/edits/{edit_id}:commit", headers=headers)
     if resp.status_code != 200:
+        hint = commit_error_hint(resp.text, args.status)
+        if hint:
+            print(f"HINT: {hint}", file=sys.stderr)
         die(resp, "committing edit")
-    print(f"Released versionCode {version_code} to the {args.track} track.")
+    print(f"Released versionCode {version_code} to the {args.track} track ({args.status}).")
 
 
 if __name__ == "__main__":

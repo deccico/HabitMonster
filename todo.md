@@ -28,3 +28,15 @@ Remaining steps:
 
 Reference: submission pack in `docs/play-store/listing.md`
 ("Target audience and content" section).
+
+## Fix edge-to-edge display on Android
+
+Play Console flagged a recommendation on the v0.0.22 production release:
+"Edge-to-edge may not display for all users" (User experience). Apps
+targeting SDK 35+ are drawn edge-to-edge by default on Android 15+, and the
+current UI may not inset correctly behind the system bars.
+
+- [ ] Audit screens with `SafeArea`/insets on an Android 15 device or emulator
+- [ ] Fix any content drawn under the status/navigation bars
+- [ ] Re-check the recommendation clears in Play Console → Production →
+      Release dashboard after the next release

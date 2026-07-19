@@ -78,6 +78,14 @@ if [ "$track" = "none" ]; then
   echo "    Bundle: ${aab}"
 else
   echo "==> Upload to Play (${track} track)"
-  python3 scripts/play_upload.py "$aab" --track "$track"
+  # Run the uploader from a project-local venv: the PATH set up above can make
+  # bare python3 resolve to an interpreter without google-auth (Homebrew's on
+  # the Mac), and a venv is also exempt from externally-managed pip restrictions.
+  venv=".venv-release"
+  if [ ! -x "$venv/bin/python" ]; then
+    python3 -m venv "$venv"
+    "$venv/bin/pip" install -q google-auth requests
+  fi
+  "$venv/bin/python" scripts/play_upload.py "$aab" --track "$track"
   echo "==> Released v${new_version} to Play ${track}"
 fi
