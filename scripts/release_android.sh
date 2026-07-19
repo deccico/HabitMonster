@@ -14,8 +14,15 @@
 # promote internal -> production in the Play Console).
 set -euo pipefail
 
-# This VPS's tool locations (flutter is not on the default PATH).
-export PATH="/opt/flutter/bin:$HOME/.pub-cache/bin:$PATH"
+# Tool locations per machine (flutter/keytool are not on the default PATH).
+if [ "$(uname)" = "Darwin" ]; then
+  # Adrian's Mac: Homebrew flutter + JDK 17 (keytool needs JAVA_HOME here).
+  export JAVA_HOME="/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home"
+  export PATH="/opt/homebrew/bin:$JAVA_HOME/bin:$HOME/.pub-cache/bin:$PATH"
+else
+  # ai-box VPS.
+  export PATH="/opt/flutter/bin:$HOME/.pub-cache/bin:$PATH"
+fi
 
 cd "$(dirname "$0")/.."
 
